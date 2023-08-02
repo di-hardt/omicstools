@@ -1,0 +1,30 @@
+// 3rd party imports
+use anyhow::{bail, Result};
+
+// Elements
+
+{% for record in data %}
+pub const {{ record.0|upper_snake_case }}: Element = Element { 
+    name: "{{ record.0|capitalize }}", 
+    symbol: "{{ record.1|capitalize }}",
+    mono_mass: {{ record.2|f64_to_string }}, 
+    average_mass: {{ record.3|f64_to_string }} 
+};
+{% endfor %}
+
+/// Array of canoncial amino acids
+///
+pub const ELEMENTS: [Element; {{ data|len }}] = [
+{% for record in data %}
+    {{ record.0|upper_snake_case }},
+{% endfor %}
+];
+
+pub fn get_element_by_symbol(symbol: &str) -> Result<Element> {
+    match symbol {
+        {% for record in data %}
+        "{{ record.1|capitalize }}" =>  Ok({{ record.0|upper_snake_case }}),
+        {% endfor %}
+        _=> bail!("Invalid element symbol: {}", symbol ),
+    }
+}

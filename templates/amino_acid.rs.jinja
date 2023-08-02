@@ -1,0 +1,57 @@
+// 3rd party imports
+use anyhow::{bail, Result};
+
+// Canonical amino acids
+
+{% for record in canonical_data %}
+pub const {{ record.0|upper_snake_case }}: CanonicalAminoAcid = CanonicalAminoAcid { 
+    name: "{{ record.0|capitalize }}", 
+    one_letter_code: '{{ record.1|upper }}',
+    three_letter_code: "{{ record.2|capitalize }}",
+    composition: "{{ record.3 }}",
+    mono_mass: {{ record.4|f64_to_string }}, 
+    average_mass: {{ record.5|f64_to_string }} 
+};
+{% endfor %}
+
+/// Array of canoncial amino acids
+///
+pub const CANONICAL_AMINO_ACIDS: [CanonicalAminoAcid; {{ canonical_data|len }}] = [
+{% for record in canonical_data %}
+    {{ record.0|upper_snake_case }},
+{% endfor %}
+];
+
+
+// Non-canonical amino acids
+
+{% for record in non_canonical_data %}
+pub const {{ record.0|upper_snake_case }}: NonCanonicalAminoAcid = NonCanonicalAminoAcid { 
+    name: "{{ record.0|capitalize }}", 
+    one_letter_code: '{{ record.1|upper }}',
+    three_letter_code: "{{ record.2|capitalize }}",
+    mono_mass: {{ record.3|f64_to_string }}, 
+    average_mass: {{ record.4|f64_to_string }} 
+};
+{% endfor %}
+
+/// Array of non canonical amino acids
+///
+pub const NON_CANONICAL_AMINO_ACIDS: [NonCanonicalAminoAcid; {{ non_canonical_data|len }}] = [
+{% for record in non_canonical_data %}
+    {{ record.0|upper_snake_case }},
+{% endfor %}
+];
+
+
+pub fn get_amino_acid_by_one_letter_code(code: char) -> Result<Box<dyn AminoAcid>> {
+    match code {
+        {% for record in canonical_data %}
+        '{{ record.1|upper }}' =>  Ok(Box::new({{ record.0|upper_snake_case }})),
+        {% endfor %}
+        {% for record in non_canonical_data %}
+        '{{ record.1|upper }}' =>  Ok(Box::new({{ record.0|upper_snake_case }})),
+        {% endfor %}
+        _=> bail!("Invalid amino acid code: {}", code ),
+    }
+}
