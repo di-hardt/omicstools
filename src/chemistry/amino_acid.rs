@@ -134,3 +134,52 @@ impl AminoAcid for NonCanonicalAminoAcid {
 
 // Include amino acids from data/canonical_amino_acids.csv & data/non_canonical_amino_acids.csv
 include!(concat!(env!("OUT_DIR"), "/amino_acid.rs"));
+
+#[cfg(test)]
+mod test {
+    // std imports
+    use std::fs::read;
+
+    // local imports
+    use super::*;
+
+    const CANONICAL_AA_FILE: &'static str = "data/canonical_amino_acids.csv";
+    const NON_CANONICAL_AA_FILE: &'static str = "data/non_canonical_amino_acids.csv";
+
+    #[test]
+    fn test_completeness() {
+        let plain_canonical_amino_acids =
+            String::from_utf8(read(CANONICAL_AA_FILE).unwrap()).unwrap();
+        let plain_non_canonical_amino_acids =
+            String::from_utf8(read(NON_CANONICAL_AA_FILE).unwrap()).unwrap();
+
+        let canonical_amino_acids_lines: Vec<String> = plain_canonical_amino_acids
+            .split("\n")
+            .map(|line| line.to_owned())
+            .collect();
+        let non_canonical_amino_acids_lines: Vec<String> = plain_non_canonical_amino_acids
+            .split("\n")
+            .map(|line| line.to_owned())
+            .collect();
+
+        // -1 because of the headers
+        assert!(CANONICAL_AMINO_ACIDS.len() == canonical_amino_acids_lines.len() - 1);
+
+        // -1 because of the headers
+        assert!(NON_CANONICAL_AMINO_ACIDS.len() == non_canonical_amino_acids_lines.len() - 1);
+
+        for amino_acid_lines in [canonical_amino_acids_lines, non_canonical_amino_acids_lines] {
+            for line in &amino_acid_lines[1..] {
+                let attributes: Vec<&str> = line.split(",").collect();
+                let one_letter_code = attributes[1].chars().next().unwrap();
+                let amino_acid = get_amino_acid_by_one_letter_code(one_letter_code).unwrap();
+                assert!(*amino_acid.get_code() == one_letter_code)
+            }
+        }
+    }
+
+    #[test]
+    fn test_getting_unkown_amino_acid() {
+        assert!(get_amino_acid_by_one_letter_code('Ä').is_err());
+    }
+}
