@@ -1,3 +1,6 @@
+// 3rd party imports
+use anyhow::{bail, Result};
+
 // Subatomic particles
 
 {% for record in data %}
@@ -14,3 +17,17 @@ pub const SUBATOMIC_PARTICLES: [SubatomicParticle; {{ data|len }}] = [
     {{ record.0|upper_snake_case }},
 {% endfor %}
 ];
+
+/// Get subatomic particle by name
+///
+/// # Arguments
+/// `name` - Name of subatomic particle
+///
+pub fn get_subatomic_particle_by_name(name: &str) -> Result<SubatomicParticle> {
+    match name.to_ascii_lowercase().as_str() {
+        {% for record in data %}
+        "{{ record.0|lower }}" =>  Ok({{ record.0|upper_snake_case }}),
+        {% endfor %}
+        _=> bail!("Invalid subatomic particle name: {}", name),
+    }
+}

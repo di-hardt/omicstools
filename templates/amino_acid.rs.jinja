@@ -49,7 +49,7 @@ pub const NON_CANONICAL_AMINO_ACIDS: [NonCanonicalAminoAcid; {{ non_canonical_da
 /// * `code` - One letter code
 ///
 pub fn get_amino_acid_by_one_letter_code(code: char) -> Result<Box<dyn AminoAcid>> {
-    match code {
+    match code.to_ascii_uppercase() {
         {% for record in canonical_data %}
         '{{ record.1|upper }}' =>  Ok(Box::new({{ record.0|upper_snake_case }})),
         {% endfor %}
