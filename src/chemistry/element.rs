@@ -14,7 +14,7 @@ impl Element {
 
     /// Returns the symbol of the element.
     ///
-    pub fn symbol(&self) -> &'static str {
+    pub fn get_symbol(&self) -> &'static str {
         return &self.symbol;
     }
 
