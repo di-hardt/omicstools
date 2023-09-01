@@ -90,30 +90,43 @@ pub struct NonCanonicalAminoAcid {
 }
 
 impl AminoAcid for NonCanonicalAminoAcid {
+    /// Returns the name of the amino acid.
+    ///
     fn get_name(&self) -> &'static str {
         return &self.name;
     }
 
+    /// Returns the one letter code of the amino acid.
+    ///
     fn get_one_letter_code(&self) -> &char {
         return &self.one_letter_code;
     }
 
+    /// Synonym for `get_one_letter_code`
+    ///
     fn get_code(&self) -> &char {
         return &self.one_letter_code;
     }
 
+    /// Returns the three letter code of the amino acid.
+    ///
     fn get_three_letter_code(&self) -> &'static str {
         return &self.three_letter_code;
     }
 
+    /// Synonym for `get_three_letter_code`
+    ///
     fn get_abbreviation(&self) -> &'static str {
         return &self.three_letter_code;
     }
 
+    /// Returns the monoisotopic mass of the amino acid.
     fn get_mono_mass(&self) -> &f64 {
         return &self.mono_mass;
     }
 
+    /// Returns the average mass of the amino acid.
+    ///
     fn get_average_mass(&self) -> &f64 {
         return &self.average_mass;
     }

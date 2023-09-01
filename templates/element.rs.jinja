@@ -20,6 +20,11 @@ pub const ELEMENTS: [Element; {{ data|len }}] = [
 {% endfor %}
 ];
 
+/// Get element by symbol
+///
+/// # Arguments
+/// `symbol` - Element symbol
+///
 pub fn get_element_by_symbol(symbol: &str) -> Result<Element> {
     match symbol {
         {% for record in data %}

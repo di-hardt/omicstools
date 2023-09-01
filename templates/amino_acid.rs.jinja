@@ -43,7 +43,11 @@ pub const NON_CANONICAL_AMINO_ACIDS: [NonCanonicalAminoAcid; {{ non_canonical_da
 {% endfor %}
 ];
 
-
+/// Returns a canonical or non-canoncial amino acid by one letter code
+///
+/// # Arguments
+/// * `code` - One letter code
+///
 pub fn get_amino_acid_by_one_letter_code(code: char) -> Result<Box<dyn AminoAcid>> {
     match code {
         {% for record in canonical_data %}
