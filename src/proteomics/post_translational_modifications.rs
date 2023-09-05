@@ -2,11 +2,13 @@
 use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::peptide::Terminus;
 
+#[derive(PartialEq)]
 pub enum Position {
     Anywhere,
     Terminus(Terminus),
 }
 
+#[derive(PartialEq)]
 pub enum ModificationType {
     Static,
     Variable,
@@ -65,5 +67,40 @@ impl PostTranslationalModification {
     ///
     pub fn get_position(&self) -> &Position {
         return &self.position;
+    }
+
+    /// Returns true if the modification is static
+    ///
+    pub fn is_static(&self) -> bool {
+        return self.mod_type == ModificationType::Static;
+    }
+
+    /// Returns true if the modification is variable
+    ///
+    pub fn is_variable(&self) -> bool {
+        return self.mod_type == ModificationType::Variable;
+    }
+
+    /// Returns true if the modification is a terminus modification
+    ///
+    pub fn is_terminus(&self) -> bool {
+        return self.position != Position::Anywhere; // Check if it is Anywhere otherwise we need to check for each terminus
+    }
+
+    /// Returns true if the modification is a terminus modification
+    ///
+    pub fn is_n_terminus(&self) -> bool {
+        return self.position == Position::Terminus(Terminus::N);
+    }
+
+    /// Returns true if the modification is a terminus modification
+    pub fn is_c_terminus(&self) -> bool {
+        return self.position == Position::Terminus(Terminus::C);
+    }
+
+    /// Returns true if the modification is a terminus modification
+    ///
+    pub fn is_anywhere(&self) -> bool {
+        return self.position == Position::Anywhere;
     }
 }
