@@ -4,8 +4,9 @@ use crate::proteomics::peptide::Terminus;
 
 #[derive(PartialEq)]
 pub enum Position {
-    Anywhere,
-    Terminus(Terminus),
+    Anywhere,           // any residue
+    Terminus(Terminus), // terminal residue
+    Bond(Terminus),     // bond to another amino acid
 }
 
 #[derive(PartialEq)]
@@ -94,18 +95,53 @@ impl PostTranslationalModification {
     /// Returns true if the modification is a terminus modification
     ///
     pub fn is_terminus(&self) -> bool {
-        return self.position != Position::Anywhere; // Check if it is Anywhere otherwise we need to check for each terminus
+        return match self.position {
+            Position::Terminus(_) => true,
+            _ => false,
+        };
     }
 
     /// Returns true if the modification is a terminus modification
     ///
     pub fn is_n_terminus(&self) -> bool {
-        return self.position == Position::Terminus(Terminus::N);
+        return match self.position {
+            Position::Terminus(Terminus::N) => true,
+            _ => false,
+        };
     }
 
     /// Returns true if the modification is a terminus modification
     pub fn is_c_terminus(&self) -> bool {
-        return self.position == Position::Terminus(Terminus::C);
+        return match self.position {
+            Position::Terminus(Terminus::C) => true,
+            _ => false,
+        };
+    }
+
+    /// Returns true if the modification is a bond modification
+    ///
+    pub fn is_bond(&self) -> bool {
+        return match self.position {
+            Position::Bond(_) => true,
+            _ => false,
+        };
+    }
+
+    /// Returns true if the modification is a N terminus bond modification
+    ///
+    pub fn is_n_bond(&self) -> bool {
+        return match self.position {
+            Position::Bond(Terminus::N) => true,
+            _ => false,
+        };
+    }
+
+    /// Returns true if the modification is a C terminus bond modification
+    pub fn is_c_bond(&self) -> bool {
+        return match self.position {
+            Position::Bond(Terminus::C) => true,
+            _ => false,
+        };
     }
 
     /// Returns true if the modification is a terminus modification
