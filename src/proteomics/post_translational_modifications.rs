@@ -18,6 +18,7 @@ pub struct PostTranslationalModification {
     name: &'static str,
     amino_acid: &'static dyn AminoAcid,
     mass_delta: f64,
+    total_mono_mass: f64,
     mod_type: ModificationType,
     position: Position,
 }
@@ -30,10 +31,12 @@ impl PostTranslationalModification {
         mod_type: ModificationType,
         position: Position,
     ) -> Self {
+        let total_mono_mass = amino_acid.get_mono_mass() + mass_delta;
         return Self {
             name,
             amino_acid,
             mass_delta,
+            total_mono_mass,
             mod_type,
             position,
         };
@@ -55,6 +58,13 @@ impl PostTranslationalModification {
     ///
     pub fn get_mass_delta(&self) -> &f64 {
         return &self.mass_delta;
+    }
+
+    /// Returns the total mono mass
+    /// This is the mass of the amino acid + the mass delta
+    ///
+    pub fn get_total_mono_mass(&self) -> &f64 {
+        return &self.total_mono_mass;
     }
 
     /// Returns the modification type
