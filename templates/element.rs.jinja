@@ -25,10 +25,10 @@ pub const ELEMENTS: [Element; {{ data|len }}] = [
 /// # Arguments
 /// `symbol` - Element symbol
 ///
-pub fn get_element_by_symbol(symbol: &str) -> Result<Element> {
+pub fn get_element_by_symbol(symbol: &str) -> Result<&'static Element> {
     match symbol.to_ascii_lowercase().as_str() {
         {% for record in data %}
-        "{{ record.1|lower }}" =>  Ok({{ record.0|upper_snake_case }}),
+        "{{ record.1|lower }}" =>  Ok(&{{ record.0|upper_snake_case }}),
         {% endfor %}
         _=> bail!("Invalid element symbol: {}", symbol ),
     }

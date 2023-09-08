@@ -23,10 +23,10 @@ pub const SUBATOMIC_PARTICLES: [SubatomicParticle; {{ data|len }}] = [
 /// # Arguments
 /// `name` - Name of subatomic particle
 ///
-pub fn get_subatomic_particle_by_name(name: &str) -> Result<SubatomicParticle> {
+pub fn get_subatomic_particle_by_name(name: &str) -> Result<&'static SubatomicParticle> {
     match name.to_ascii_lowercase().as_str() {
         {% for record in data %}
-        "{{ record.0|lower }}" =>  Ok({{ record.0|upper_snake_case }}),
+        "{{ record.0|lower }}" =>  Ok(&{{ record.0|upper_snake_case }}),
         {% endfor %}
         _=> bail!("Invalid subatomic particle name: {}", name),
     }
