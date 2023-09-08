@@ -48,13 +48,13 @@ pub const NON_CANONICAL_AMINO_ACIDS: [NonCanonicalAminoAcid; {{ non_canonical_da
 /// # Arguments
 /// * `code` - One letter code
 ///
-pub fn get_amino_acid_by_one_letter_code(code: char) -> Result<Box<dyn AminoAcid>> {
+pub fn get_amino_acid_by_one_letter_code(code: char) -> Result<&'static dyn AminoAcid> {
     match code.to_ascii_uppercase() {
         {% for record in canonical_data %}
-        '{{ record.1|upper }}' =>  Ok(Box::new({{ record.0|upper_snake_case }})),
+        '{{ record.1|upper }}' =>  Ok(&{{ record.0|upper_snake_case }}),
         {% endfor %}
         {% for record in non_canonical_data %}
-        '{{ record.1|upper }}' =>  Ok(Box::new({{ record.0|upper_snake_case }})),
+        '{{ record.1|upper }}' =>  Ok(&{{ record.0|upper_snake_case }}),
         {% endfor %}
         _=> bail!("Invalid amino acid code: {}", code ),
     }
