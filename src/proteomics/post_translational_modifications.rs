@@ -1,3 +1,9 @@
+// std imports
+use std::str::FromStr;
+
+// 3rd party imports
+use anyhow::{bail, Error};
+
 // internal imports
 use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::peptide::Terminus;
@@ -9,10 +15,47 @@ pub enum Position {
     Bond(Terminus),     // bond to another amino acid
 }
 
+impl FromStr for Position {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s_lower = s.to_lowercase();
+        if s_lower == "anywhere" {
+            return Ok(Position::Anywhere);
+        }
+
+        if s_lower.starts_with("terminus_") {
+            let terminus_str = s_lower[9..].to_lowercase();
+            let terminus = Terminus::from_str(terminus_str.as_str())?;
+            return Ok(Position::Terminus(terminus));
+        }
+
+        if s_lower.starts_with("bond_") {
+            let terminus_str = s_lower[9..].to_lowercase();
+            let terminus = Terminus::from_str(terminus_str.as_str())?;
+            return Ok(Position::Terminus(terminus));
+        }
+
+        bail!("Invalid position. Valid format: `anywhere`, `terminus_<N|C>`, `bond_<N|C>`");
+    }
+}
+
 #[derive(PartialEq)]
 pub enum ModificationType {
     Static,
     Variable,
+}
+
+impl FromStr for ModificationType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "static" => Ok(ModificationType::Static),
+            "variable" => Ok(ModificationType::Variable),
+            _ => bail!("Invalid modification type: valid types are `static` or `variable`"),
+        }
+    }
 }
 
 pub struct PostTranslationalModification {
