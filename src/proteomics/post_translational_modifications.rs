@@ -16,7 +16,7 @@ pub enum ModificationType {
 }
 
 pub struct PostTranslationalModification {
-    name: &'static str,
+    name: String,
     amino_acid: &'static dyn AminoAcid,
     mass_delta: f64,
     total_mono_mass: f64,
@@ -26,7 +26,7 @@ pub struct PostTranslationalModification {
 
 impl PostTranslationalModification {
     pub fn new(
-        name: &'static str,
+        name: &str,
         amino_acid: &'static dyn AminoAcid,
         mass_delta: f64,
         mod_type: ModificationType,
@@ -34,19 +34,19 @@ impl PostTranslationalModification {
     ) -> Self {
         let total_mono_mass = amino_acid.get_mono_mass() + mass_delta;
         return Self {
-            name,
             amino_acid,
             mass_delta,
             total_mono_mass,
             mod_type,
             position,
+            name: name.to_owned(),
         };
     }
 
     /// Returns the name
     ///
-    pub fn get_name(&self) -> &'static str {
-        return &self.name;
+    pub fn get_name(&self) -> &str {
+        return &self.name.as_str();
     }
 
     /// Returns the amino acid
