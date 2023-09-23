@@ -194,3 +194,6 @@ impl PostTranslationalModification {
         return self.position == Position::Anywhere;
     }
 }
+
+// Maling the struct Send + Sync should be save as it is a read-only struct
+unsafe impl Send for PostTranslationalModification {}
