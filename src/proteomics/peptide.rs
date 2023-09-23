@@ -4,7 +4,7 @@ use std::str::FromStr;
 // 3rd party imports
 use anyhow::{bail, Error};
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Terminus {
     N,
     C,

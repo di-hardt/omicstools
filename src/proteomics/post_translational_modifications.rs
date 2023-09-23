@@ -8,7 +8,7 @@ use anyhow::{bail, Error};
 use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::peptide::Terminus;
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Position {
     Anywhere,           // any residue
     Terminus(Terminus), // terminal residue
@@ -40,7 +40,7 @@ impl FromStr for Position {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ModificationType {
     Static,
     Variable,
@@ -58,6 +58,7 @@ impl FromStr for ModificationType {
     }
 }
 
+#[derive(Clone)]
 pub struct PostTranslationalModification {
     name: String,
     amino_acid: &'static dyn AminoAcid,
