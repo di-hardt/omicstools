@@ -1,4 +1,6 @@
-pub trait AminoAcid {
+// Sync and Send are required for the amino acids to be used in parallel
+// and should be save as the amino acids are immutable.
+pub trait AminoAcid: Sync + Send {
     /// Returns the name of the amino acid.
     ///
     fn get_name(&self) -> &'static str;
