@@ -5,7 +5,7 @@ use std::string::ToString;
 // 3rd party imports
 use anyhow::{bail, Error};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Terminus {
     N,
     C,
@@ -29,5 +29,23 @@ impl ToString for Terminus {
             Self::N => "N".to_owned(),
             Self::C => "C".to_owned(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_terminus_from_str() {
+        assert_eq!(Terminus::from_str("N").unwrap(), Terminus::N);
+        assert_eq!(Terminus::from_str("C").unwrap(), Terminus::C);
+        assert!(Terminus::from_str("X").is_err());
+    }
+
+    #[test]
+    fn test_terminus_to_string() {
+        assert_eq!(Terminus::N.to_string(), "N");
+        assert_eq!(Terminus::C.to_string(), "C");
     }
 }

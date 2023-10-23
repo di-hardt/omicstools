@@ -9,7 +9,7 @@ use anyhow::{bail, Error};
 use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::peptide::Terminus;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Position {
     Anywhere,           // any residue
     Terminus(Terminus), // terminal residue
@@ -51,7 +51,7 @@ impl ToString for Position {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ModificationType {
     Static,
     Variable,
@@ -217,3 +217,43 @@ impl PostTranslationalModification {
 
 // Maling the struct Send + Sync should be save as it is a read-only struct
 unsafe impl Send for PostTranslationalModification {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_position_from_str() {
+        assert_eq!(Position::from_str("anywhere").unwrap(), Position::Anywhere);
+        assert_eq!(
+            Position::from_str("terminus_n").unwrap(),
+            Position::Terminus(Terminus::N)
+        );
+        assert_eq!(
+            Position::from_str("terminus_c").unwrap(),
+            Position::Terminus(Terminus::C)
+        );
+        assert_eq!(
+            Position::from_str("bond_n").unwrap(),
+            Position::Bond(Terminus::N)
+        );
+        assert_eq!(
+            Position::from_str("bond_c").unwrap(),
+            Position::Bond(Terminus::C)
+        );
+        assert!(Position::from_str("X").is_err());
+    }
+
+    #[test]
+    fn test_type_from_str() {
+        assert_eq!(
+            ModificationType::from_str("static").unwrap(),
+            ModificationType::Static
+        );
+        assert_eq!(
+            ModificationType::from_str("variable").unwrap(),
+            ModificationType::Variable
+        );
+        assert!(ModificationType::from_str("X").is_err());
+    }
+}
