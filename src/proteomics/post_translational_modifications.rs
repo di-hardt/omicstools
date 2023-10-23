@@ -32,9 +32,9 @@ impl FromStr for Position {
         }
 
         if s_lower.starts_with("bond_") {
-            let terminus_str = s_lower[9..].to_lowercase();
+            let terminus_str = s_lower[5..].to_lowercase();
             let terminus = Terminus::from_str(terminus_str.as_str())?;
-            return Ok(Position::Terminus(terminus));
+            return Ok(Position::Bond(terminus));
         }
 
         bail!("Invalid position. Valid format: `anywhere`, `terminus_<N|C>`, `bond_<N|C>`");
