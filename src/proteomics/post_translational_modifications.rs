@@ -1,5 +1,6 @@
 // std imports
 use std::str::FromStr;
+use std::string::ToString;
 
 // 3rd party imports
 use anyhow::{bail, Error};
@@ -40,6 +41,16 @@ impl FromStr for Position {
     }
 }
 
+impl ToString for Position {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Anywhere => "anywhere".to_owned(),
+            Self::Terminus(terminus) => format!("terminus_{}", terminus.to_string()),
+            Self::Bond(terminus) => format!("bond_{}", terminus.to_string()),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub enum ModificationType {
     Static,
@@ -54,6 +65,15 @@ impl FromStr for ModificationType {
             "static" => Ok(ModificationType::Static),
             "variable" => Ok(ModificationType::Variable),
             _ => bail!("Invalid modification type: valid types are `static` or `variable`"),
+        }
+    }
+}
+
+impl ToString for ModificationType {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Static => "static".to_owned(),
+            Self::Variable => "variable".to_owned(),
         }
     }
 }

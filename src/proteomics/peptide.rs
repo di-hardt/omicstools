@@ -1,5 +1,6 @@
 // std imports
 use std::str::FromStr;
+use std::string::ToString;
 
 // 3rd party imports
 use anyhow::{bail, Error};
@@ -18,6 +19,15 @@ impl FromStr for Terminus {
             "N" => Ok(Terminus::N),
             "C" => Ok(Terminus::C),
             _ => bail!("Invalid terminus. Valid termini are `N` or `C`"),
+        }
+    }
+}
+
+impl ToString for Terminus {
+    fn to_string(&self) -> String {
+        match self {
+            Self::N => "N".to_owned(),
+            Self::C => "C".to_owned(),
         }
     }
 }
