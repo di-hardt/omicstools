@@ -4,5 +4,9 @@
 
 /// Module containing functions and information for chemistry and molecules
 pub mod chemistry;
+/// Entities and functions for working with mass spectrometry data
+pub mod mass_spectrometry;
 /// Module containing functions and definitions for proteomics
 pub mod proteomics;
+/// Functions and extension for external crates
+pub mod tools;

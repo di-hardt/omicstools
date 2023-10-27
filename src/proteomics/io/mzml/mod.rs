@@ -6,3 +6,5 @@ pub mod index;
 pub mod indexed_reader;
 /// MzML indexer
 pub mod indexer;
+/// Functions to read spectra information from MzML files
+pub mod reader;
