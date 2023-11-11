@@ -216,10 +216,9 @@ mod test {
 
         let mut reader = IndexedReader::new(file_path, &index).unwrap();
 
-        let spec = reader
+        let _ = reader
             .extract_spectrum("controllerType=0 controllerNumber=1 scan=2814")
             .unwrap();
-        println!("{}", String::from_utf8_lossy(spec.as_slice()));
     }
 
     #[test]

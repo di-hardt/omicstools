@@ -47,8 +47,6 @@ mod test {
             let attributes: Vec<&str> = line.split(",").collect();
             let name = attributes[0];
             let subatomic_particle = get_subatomic_particle_by_name(name).unwrap();
-            println!("name: {}", name);
-            println!("get_name: {}", subatomic_particle.get_name());
             assert!(subatomic_particle.get_name() == name)
         }
     }
