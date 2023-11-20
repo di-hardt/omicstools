@@ -237,8 +237,8 @@ mod tests {
             taxonomy_tree.get_deleted_taxonomies(),
             tree_deserialized.get_deleted_taxonomies()
         );
-        // Go through all taxonomies and check if the sam taxonomy is returned
-        // by ID and if both
+        // Go through all taxonomies and check if the same taxonomy is returned
+        // by ID and if both have the same parent ID
         for tax_id in taxonomy_tree.get_index().keys() {
             let taxonomy = taxonomy_tree.get_taxonomy(*tax_id).unwrap();
             let taxonomy_deserialized = tree_deserialized.get_taxonomy(*tax_id).unwrap();
