@@ -14,4 +14,4 @@ Constant data like element masses are provided as CSV-file and gets compiled on 
 * OpenSSL (Ubuntu: `libssl-dev`)
 
 ### Unit tests
-* For testing the taxonomy reader a [`taxdmp.zip`]() is required. The test is capable of download it by itself and save it to the tmp folder, however if you plan excessive testing over a couple of reboots, download it ones and set the environment variable `TAXDMP_ZIP_PATH` with the pass to the file.
+* For testing the taxonomy reader a [`taxdmp.zip`](https://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip) is required. The test is capable of download it by itself and save it to the tmp folder, however if you plan excessive testing over a couple of reboots, download it ones and set the environment variable `TAXDMP_ZIP_PATH` with the path to the file.
