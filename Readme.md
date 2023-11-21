@@ -6,6 +6,8 @@ Constant data like element masses are provided as CSV-file and gets compiled on 
 * Elements data is used from: https://proteomicsresource.washington.edu/protocols06/masses.php
 * Subatomic particles data is used from en.wikipedia.org/wiki/(Proton|Electron|Neutron) (need better source)
 
+## Installation
+`cargo add dihardts_omicstools`
 
 ## Development
 
