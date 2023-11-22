@@ -240,9 +240,7 @@ pub mod tests {
         if let Some(taxdmp_zip_path) = env::var_os("TAXDMP_ZIP_PATH") {
             return Ok(Path::new(taxdmp_zip_path.to_str().unwrap()).to_path_buf());
         }
-        let taxdmp_zip_path = env::temp_dir()
-            .join("mcccoys_unit_tests")
-            .join("taxdmp.zip");
+        let taxdmp_zip_path = env::temp_dir().join("taxdmp_for_unit_tests.zip");
         // Create temp dir
         if !taxdmp_zip_path.parent().unwrap().is_dir() {
             create_dir(taxdmp_zip_path.parent().unwrap()).unwrap();
