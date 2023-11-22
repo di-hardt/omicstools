@@ -5,3 +5,5 @@ pub mod io;
 pub mod peptide;
 /// Defines posttranslational modifications
 pub mod post_translational_modifications;
+/// Defines proteases
+pub mod proteases;
