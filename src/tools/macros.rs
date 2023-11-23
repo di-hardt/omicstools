@@ -1,18 +1,17 @@
-/// Creats a Map- or Set-like collection, e.g. a map
-/// ```rust
+/// Creats a Map- or Set-like collection, e.g.
+/// ```txt
+/// // HashMap
 /// collection! {
 ///     "SOMEKEY".to_string() => "A_VALUE",
 ///     "ANOTHERKEY".to_string() => "ANOTHER_VALUE",
 /// }
-/// ```
-/// or a set
-/// ```rust
+///
+/// // HashSet
 /// collection! {
 ///     "SOMETHING_UNIQUE".to_string(),
 ///     "ANOTHER_UNIQUE".to_string(),
 /// }
 /// ```
-/// respectively.
 /// Copied from https://stackoverflow.com/a/27582993
 // Used
 #[allow(unused_macros)]
