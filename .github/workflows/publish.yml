@@ -1,6 +1,9 @@
-name: Publish crate
+name: Publish
 
 on:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
   push:
     tags:        
         - '[0-9]+.[0-9]+.[0-9]+'
@@ -14,6 +17,7 @@ permissions:
 jobs:
   publish:
     runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
