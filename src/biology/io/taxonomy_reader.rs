@@ -17,7 +17,7 @@ use crate::biology::taxonomy::{Taxonomy, TaxonomyTree};
 ///
 pub const TAXDMP_URL: &'static str = "https://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip";
 
-/// Creates a [TaxonomyTree](create::biology::taxonomy::TaxonomyTree) from a `taxdmp.zip` file
+/// Creates a [TaxonomyTree](crate::biology::taxonomy::TaxonomyTree) from a `taxdmp.zip` file
 /// downloaded from [NCBI taxonomy](https://ftp.ncbi.nih.gov/pub/taxonomy/).
 ///
 pub struct TaxonomyReader {
