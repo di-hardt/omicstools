@@ -6,6 +6,8 @@ use crate::proteomics::proteases::protease::Protease;
 use crate::proteomics::proteases::trypsin::{Trypsin, NAME as TRYPSIN_NAME};
 use crate::proteomics::proteases::unspecific::{Unspecific, NAME as UNSPECIFIC_NAME};
 
+pub const ALL: [&str; 2] = [TRYPSIN_NAME, UNSPECIFIC_NAME];
+
 /// Returns a protease by name
 ///
 /// # Arguments
