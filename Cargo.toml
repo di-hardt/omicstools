@@ -1,6 +1,6 @@
 [package]
 name = "dihardts_omicstools"
-version = "1.9.0"
+version = "1.10.0"
 edition = "2021"
 readme = "Readme.md"
 description = "Collection of different omic tools, structs and enums."
