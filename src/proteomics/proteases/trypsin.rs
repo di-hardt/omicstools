@@ -2,6 +2,7 @@
 use anyhow::{bail, Result};
 use fancy_regex::Regex;
 
+use crate::chemistry::amino_acid::{AminoAcid, ARGININE, LYSINE, PROLINE};
 // internal imports
 use crate::proteomics::proteases::protease::Protease;
 use crate::tools::fancy_regex::split as regex_split;
@@ -10,14 +11,19 @@ use crate::tools::fancy_regex::split as regex_split;
 ///
 pub const NAME: &str = "trypsin";
 
-/// Cleavage sites
+/// Cleavage amino acids
 ///
-pub const CLEAVEGE_SITES: [char; 2] = ['K', 'R'];
+const CLEAVAGE_AMINO_ACIDS: [&'static dyn AminoAcid; 2] = [&ARGININE, &LYSINE];
+
+/// Blocking amino acids
+///
+const CLEAVAGE_BLOCKING_AMINO_ACIDS: [&'static dyn AminoAcid; 1] = [&PROLINE];
 
 lazy_static! {
     /// Regex to find cleavage sites
     ///
     static ref CLEAVAGE_SITE_REGEX: Regex = Regex::new("(?<=[KR])(?!P)").unwrap();
+    static ref CLEAVAGE_AMINO_ACIDS_CHARS: [char; 2] = [*ARGININE.get_code(), *LYSINE.get_code()];
 }
 
 /// Trypsin protease, cleaves after K and R, but not if followed by P
@@ -65,6 +71,18 @@ impl Protease for Trypsin {
         true
     }
 
+    fn get_cleavage_amino_acids(&self) -> &[&dyn AminoAcid] {
+        &CLEAVAGE_AMINO_ACIDS
+    }
+
+    fn get_cleavage_blocking_amino_acids(&self) -> &[&dyn AminoAcid] {
+        &CLEAVAGE_BLOCKING_AMINO_ACIDS
+    }
+
+    fn is_blocking_amino_acid_before_cleavage_site(&self) -> bool {
+        false
+    }
+
     fn full_digest(&self, sequence: &str) -> Result<Vec<String>> {
         Ok(regex_split(&CLEAVAGE_SITE_REGEX, sequence)?
             .iter()
@@ -79,7 +97,7 @@ impl Protease for Trypsin {
         let mut missed_cleavages = CLEAVAGE_SITE_REGEX.find_iter(sequence).count();
         // As the cleavage site regex is also counting the last amino acid, we have to subtract one
         // if the last amino acid is a cleavage site.
-        if CLEAVEGE_SITES.contains(&sequence.chars().last().unwrap()) {
+        if CLEAVAGE_AMINO_ACIDS_CHARS.contains(&sequence.chars().last().unwrap()) {
             missed_cleavages -= 1;
         }
         Ok(missed_cleavages)

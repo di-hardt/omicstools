@@ -2,9 +2,20 @@
 use anyhow::Result;
 
 // internal imports
+use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::proteases::protease::Protease;
 
+/// Name of the unspecific protease
+///
 pub const NAME: &str = "unspecific";
+
+/// Cleavage amino acids
+///
+const CLEAVAGE_AMINO_ACIDS: [&'static dyn AminoAcid; 0] = [];
+
+/// Blocking amino acids
+///
+const CLEAVAGE_BLOCKING_AMINO_ACIDS: [&'static dyn AminoAcid; 0] = [];
 
 pub struct Unspecific {
     min_length: Option<usize>,
@@ -41,6 +52,19 @@ impl Protease for Unspecific {
     fn is_count_missed_cleavages(&self) -> bool {
         // For unspecific proteases, the number of missed cleavages is not defined.
         false
+    }
+
+    fn get_cleavage_amino_acids(&self) -> &[&dyn AminoAcid] {
+        &CLEAVAGE_AMINO_ACIDS
+    }
+
+    fn get_cleavage_blocking_amino_acids(&self) -> &[&dyn AminoAcid] {
+        &CLEAVAGE_BLOCKING_AMINO_ACIDS
+    }
+
+    fn is_blocking_amino_acid_before_cleavage_site(&self) -> bool {
+        // Actually unclear for unspecific
+        true
     }
 
     fn full_digest(&self, sequence: &str) -> Result<Vec<String>> {

@@ -6,7 +6,7 @@ use anyhow::{Error, Result};
 use fallible_iterator::FallibleIterator;
 
 // internal imports
-use crate::proteomics::peptide::Peptide;
+use crate::{chemistry::amino_acid::AminoAcid, proteomics::peptide::Peptide};
 
 /// Trait defining the behavior for a protease
 ///
@@ -47,6 +47,19 @@ pub trait Protease: Send + Sync {
     /// Therefore min_length, max_length and max_missed_cleavages can be `None` when just this method is used.
     ///
     fn count_missed_cleavages(&self, sequence: &str) -> Result<usize>;
+
+    /// Returns the amino acid codes for the cleavage sites
+    ///
+    fn get_cleavage_amino_acids(&self) -> &[&dyn AminoAcid];
+
+    /// Returns the amino acid codes for the cleavage sites
+    ///
+    fn get_cleavage_blocking_amino_acids(&self) -> &[&dyn AminoAcid];
+
+    /// Returns true if blocking amino acids is before or the cleavage site, or after
+    /// e.g. for Trypsin this would be false because the blocking P is after the cleavage site
+    ///
+    fn is_blocking_amino_acid_before_cleavage_site(&self) -> bool;
 
     /// Cleaves a protein into peptides and returns a iterator over the peptides
     ///
