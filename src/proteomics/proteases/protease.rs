@@ -67,8 +67,8 @@ pub trait Protease: Send + Sync {
     /// * `sequence` - Amino acid sequence
     /// * `max_missed_cleavages` - Maximum number of missed cleavages
     ///
-    fn cleave(&self, sequence: &str) -> Result<ProteaseIterator> {
-        Ok(ProteaseIterator::new(
+    fn cleave(&self, sequence: &str) -> Result<Peptides> {
+        Ok(Peptides::new(
             self.full_digest(sequence)?,
             self.get_min_length(),
             self.get_max_length(),
@@ -78,7 +78,9 @@ pub trait Protease: Send + Sync {
     }
 }
 
-pub struct ProteaseIterator {
+/// Iterator over peptides of a protein
+///
+pub struct Peptides {
     /// Fully digested protein sequence
     full_digest: Vec<String>,
     /// Minimum peptide length
@@ -95,7 +97,7 @@ pub struct ProteaseIterator {
     peptide_buffer: Vec<Peptide>,
 }
 
-impl ProteaseIterator {
+impl Peptides {
     pub fn new(
         full_digest: Vec<String>,
         min_length: Option<usize>,
@@ -119,7 +121,7 @@ impl ProteaseIterator {
     }
 }
 
-impl FallibleIterator for ProteaseIterator {
+impl FallibleIterator for Peptides {
     type Item = Peptide;
     type Error = Error;
 
