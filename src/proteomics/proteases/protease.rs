@@ -81,9 +81,9 @@ pub trait Protease: Send + Sync {
 pub struct ProteaseIterator {
     /// Fully digested protein sequence
     full_digest: Vec<String>,
-    /// Min peptide length
+    /// Minimum peptide length
     min_length: Option<usize>,
-    /// Max peptide length
+    /// Maximum peptide length
     max_length: Option<usize>,
     /// Maximum number of missed cleavages
     max_missed_cleavages: Option<usize>,
@@ -148,23 +148,10 @@ impl FallibleIterator for ProteaseIterator {
             };
 
             for i in self.start_position..=end {
+                // Build sequence
                 let sequence = self.full_digest[self.start_position..=i].join("");
+                // Count missed cleavages
                 let mut missed_cleavages = i - self.start_position;
-                if let Some(min_length) = self.min_length {
-                    if sequence.len() < min_length {
-                        continue;
-                    }
-                }
-                if let Some(max_length) = self.max_length {
-                    if sequence.len() > max_length {
-                        continue;
-                    }
-                }
-                if let Some(max_missed_cleavages) = self.max_missed_cleavages {
-                    if missed_cleavages > max_missed_cleavages {
-                        continue;
-                    }
-                }
                 // If the protease was not initialized with a limit for missed cleavages
                 // the missed cleavages are set to 0
                 missed_cleavages = if self.is_count_missed_cleavages {
@@ -172,6 +159,25 @@ impl FallibleIterator for ProteaseIterator {
                 } else {
                     0
                 };
+
+                if let Some(min_length) = self.min_length {
+                    if sequence.len() < min_length {
+                        continue; // add another peptide from the digest to increase length
+                    }
+                }
+
+                if let Some(max_length) = self.max_length {
+                    if sequence.len() > max_length {
+                        break; // break because adding another peptide from the digest will further increase length
+                    }
+                }
+
+                if let Some(max_missed_cleavages) = self.max_missed_cleavages {
+                    if missed_cleavages > max_missed_cleavages {
+                        break; // break because adding another peptide from the digest will further increase missed cleavages
+                    }
+                }
+
                 self.peptide_buffer
                     .push(Peptide::new(sequence, missed_cleavages)?);
             }
