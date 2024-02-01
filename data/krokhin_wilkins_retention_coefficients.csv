@@ -1,0 +1,21 @@
+name,one_letter_code,rcn,rcnt
+alanine,A,0.80,-1.5
+cysteine,C,-0.80,4.0
+aspartic acid,D,-0.50,9.0
+glutamic acid,E,0.00,7.0
+phenylalanine,F,10.50,-7.0
+glycine,G,-0.90,5.0
+histidine,H,-1.30,4.0
+isoleucine,I,8.40,-8.0
+lysine,K,-1.90,4.6
+leucine,L,9.60,-9.0
+methionine,M,5.80,-5.5
+asparagine,N,-1.20,5.0
+proline,P,0.20,4.0
+glutamine,Q,-0.90,1.0
+arginine,R,-1.30,8.0
+serine,S,-0.80,5.0
+threonine,T,0.40,5.0
+valine,V,5.00,-5.5
+tryptophan,W,11.00,-4.0
+tyrosine,Y,4.00,-3.0

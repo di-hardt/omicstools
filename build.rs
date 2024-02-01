@@ -14,6 +14,7 @@ type CanonicalAminoAcidRecord = (String, char, String, String, f64, f64);
 type NonCanonicalAminoAcidRecord = (String, char, String, f64, f64);
 type ElementRecord = (String, String, f64, f64);
 type SubatomicParticleRecord = (String, f64);
+type KrokhinWilkinsRetentionCoefficientRecord = (String, char, f32, f32);
 
 /// Template for amino acids
 ///
@@ -40,6 +41,14 @@ struct SubatomicParticleTemplate {
     data: Vec<SubatomicParticleRecord>,
 }
 
+/// Template for retention coefficients
+///
+#[derive(Template)]
+#[template(path = "krokhin_wilkins_hydrophobicity.rs.jinja", escape = "none")]
+struct RetentionCoefficientTemplate {
+    data: Vec<KrokhinWilkinsRetentionCoefficientRecord>,
+}
+
 /// Custom filters for askama templates
 ///
 mod filters {
@@ -54,6 +63,12 @@ mod filters {
     /// Prevents 0.0 to be shortened to 0
     ///
     pub fn f64_to_string(number: &f64) -> askama::Result<String> {
+        Ok(format!("{:?}", number))
+    }
+
+    /// Prevents 0.0 to be shortened to 0
+    ///
+    pub fn f32_to_string(number: &f32) -> askama::Result<String> {
         Ok(format!("{:?}", number))
     }
 }
@@ -137,18 +152,39 @@ fn compile_subatomic_particles(out_dir: &str) -> Result<()> {
     Ok(())
 }
 
+fn compile_kw_retention_coefficients(out_dir: &str) -> Result<()> {
+    let dest_path = Path::new(&out_dir).join("krokhin_wilkins_hydrophobicity.rs");
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .trim(csv::Trim::All)
+        .from_path("data/krokhin_wilkins_retention_coefficients.csv")?;
+
+    // get subatomic particle data
+    let data = csv_reader
+        .deserialize()
+        .collect::<Result<Vec<KrokhinWilkinsRetentionCoefficientRecord>, _>>()?;
+
+    // render template
+    let mut f = File::create(dest_path)?;
+    let data = RetentionCoefficientTemplate { data };
+    writeln!(f, "{}", data.render()?)?;
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let out_dir = env::var("OUT_DIR")?;
 
     compile_amino_acids(out_dir.as_str())?;
     compile_elements(out_dir.as_str())?;
     compile_subatomic_particles(out_dir.as_str())?;
+    compile_kw_retention_coefficients(out_dir.as_str())?;
 
     // Setup instructions
     println!("cargo:rerun-if-changed=data/canonical_amino_acids.csv");
     println!("cargo:rerun-if-changed=data/non_canonical_amino_acids.csv");
     println!("cargo:rerun-if-changed=data/elements.csv");
     println!("cargo:rerun-if-changed=data/subatomic_particles.csv");
+    println!("cargo:rerun-if-changed=data/krokhin_wilkins_retention_coefficients.csv");
 
     Ok(())
 }
