@@ -6,7 +6,7 @@ use std::string::ToString;
 use anyhow::{bail, Context, Error, Result};
 
 // internal imports
-use crate::chemistry::amino_acid::get_amino_acid_by_one_letter_code;
+use crate::chemistry::amino_acid::{get_amino_acid_by_one_letter_code, get_hydropathicity_kd};
 use crate::chemistry::element::get_element_by_symbol;
 
 lazy_static! {
@@ -60,6 +60,25 @@ pub fn calculate_mass_of_peptide_sequence(sequence: &str) -> Result<f64> {
                     .get_mono_mass())
             })
             .sum::<Result<f64>>()?)
+}
+
+/// Calculates the GRand AVerage of hydropathicity (GRAVY) of the peptide sequence.
+/// using the Kyte-Doolittle hydropathicity.
+///
+/// Will throw an error if the peptide sequence contains non-canonical amino acid  or Selenocysteine or Pyrrolysine.
+///
+/// # Arguments
+/// * `sequence` - A peptide sequence
+///
+pub fn calculate_gravy_kd(sequence: &str) -> Result<f64> {
+    let hypathicity_sum = sequence
+        .chars()
+        .map(|code| {
+            Ok(get_hydropathicity_kd(code)
+                .context("Error when calculate GRAVY of peptide sequence")?)
+        })
+        .sum::<Result<f64>>()?;
+    Ok(hypathicity_sum / sequence.len() as f64)
 }
 
 /// Very simple peptide representation to start with
@@ -128,5 +147,15 @@ mod tests {
         mass = (mass * 1000000000.0).round() / 1000000000.0;
 
         assert_eq!(mass, 5285.286805615);
+    }
+
+    #[test]
+    fn test_calculate_gravy_kd() {
+        let gravy = calculate_gravy_kd("EQKLISEEDL").unwrap();
+        // Rounding errors. Round to 2 decimal places to fix this
+        let gravy = (gravy * 100.0).round() / 100.0;
+        assert_eq!(gravy, -1.01);
+
+        assert!(calculate_gravy_kd("EQKLISEEDLO").is_err());
     }
 }

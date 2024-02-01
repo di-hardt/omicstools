@@ -1,10 +1,14 @@
 # Omictools
 
 ## Constant data
-Constant data like element masses are provided as CSV-file and gets compiled on build time (see: build.rs).
+For easier maintenance the data of some datatypes with multiple attributes like elements and amino acids is provided as CSV-file and gets compiled on build time (see: build.rs)
 * Amino acid data is used from: <https://proteomicsresource.washington.edu/protocols06/masses.php>
 * Elements data is used from: <https://proteomicsresource.washington.edu/protocols06/masses.php>
 * Subatomic particles data is used from en.wikipedia.org/wiki/(Proton|Electron|Neutron) (need better source)
+
+Data with one or two attributes are directly added to the code:
+* Amino acid hydropathicity_kd:
+    > Kyte, J.; Doolittle, R. F.. A simple method for displaying the hydropathic character of a protein. Journal of molecular biology 1982, 157 (1), 105-32. <https://doi.org/10.1016/0022-2836(82)90515-0>.
 
 ## Installation
 `cargo add dihardts_omicstools`

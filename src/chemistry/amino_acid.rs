@@ -137,6 +137,37 @@ impl AminoAcid for NonCanonicalAminoAcid {
 // Include amino acids from data/canonical_amino_acids.csv & data/non_canonical_amino_acids.csv
 include!(concat!(env!("OUT_DIR"), "/amino_acid.rs"));
 
+/// Get amino acid hydropathicity according to Kyte & Doolittle (https://doi.org/10.1016/0022-2836(82)90515-0.)
+///
+/// # Arguments
+/// * `code` - One letter code of the amino acid
+///
+pub fn get_hydropathicity_kd(code: char) -> Result<f64> {
+    match code {
+        'G' => Ok(-0.4),
+        'A' => Ok(1.8),
+        'S' => Ok(-0.8),
+        'P' => Ok(-1.6),
+        'V' => Ok(4.2),
+        'T' => Ok(-0.7),
+        'C' => Ok(2.5),
+        'L' => Ok(3.8),
+        'I' => Ok(4.5),
+        'N' => Ok(-3.5),
+        'D' => Ok(-3.5),
+        'Q' => Ok(-3.5),
+        'K' => Ok(-3.9),
+        'E' => Ok(-3.5),
+        'M' => Ok(1.9),
+        'H' => Ok(-3.2),
+        'F' => Ok(2.8),
+        'R' => Ok(-4.5),
+        'Y' => Ok(-1.3),
+        'W' => Ok(-0.9),
+        _ => bail!("Unknown amino acid code: {}", code),
+    }
+}
+
 #[cfg(test)]
 mod test {
     // std imports
