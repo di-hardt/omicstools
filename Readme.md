@@ -5,7 +5,10 @@ For easier maintenance the data of some datatypes with multiple attributes like 
 * Amino acid data is used from: <https://proteomicsresource.washington.edu/protocols06/masses.php>
 * Elements data is used from: <https://proteomicsresource.washington.edu/protocols06/masses.php>
 * Subatomic particles data is used from en.wikipedia.org/wiki/(Proton|Electron|Neutron) (need better source)
-* Krokin/Wilkins retention coefficients: https://doi.org/10.1074/mcp.M400031-MCP200
+* Krokin retention coefficients
+    * V1: <https://doi.org/10.1074/mcp.M400031-MCP200>
+    * V3: <https://doi.org/10.1021/ac060777w>
+
 
 Data with one or two attributes are directly added to the code:
 * Amino acid hydropathicity_kd:

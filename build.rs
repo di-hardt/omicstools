@@ -14,7 +14,21 @@ type CanonicalAminoAcidRecord = (String, char, String, String, f64, f64);
 type NonCanonicalAminoAcidRecord = (String, char, String, f64, f64);
 type ElementRecord = (String, String, f64, f64);
 type SubatomicParticleRecord = (String, f64);
-type KrokhinWilkinsRetentionCoefficientRecord = (String, char, f32, f32);
+type KrokhinWilkinsRetentionCoefficientRecordV1 = (String, char, f32, f32);
+type KrokhinWilkinsRetentionCoefficientRecordV3 = (
+    String,
+    char,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+    f32,
+);
 
 /// Template for amino acids
 ///
@@ -44,9 +58,10 @@ struct SubatomicParticleTemplate {
 /// Template for retention coefficients
 ///
 #[derive(Template)]
-#[template(path = "krokhin_wilkins_hydrophobicity.rs.jinja", escape = "none")]
+#[template(path = "krokhin_hydrophobicity.rs.jinja", escape = "none")]
 struct RetentionCoefficientTemplate {
-    data: Vec<KrokhinWilkinsRetentionCoefficientRecord>,
+    data_v1: Vec<KrokhinWilkinsRetentionCoefficientRecordV1>,
+    data_v3: Vec<KrokhinWilkinsRetentionCoefficientRecordV3>,
 }
 
 /// Custom filters for askama templates
@@ -152,20 +167,23 @@ fn compile_subatomic_particles(out_dir: &str) -> Result<()> {
     Ok(())
 }
 
-fn compile_kw_retention_coefficients(out_dir: &str) -> Result<()> {
-    let dest_path = Path::new(&out_dir).join("krokhin_wilkins_hydrophobicity.rs");
-    let mut csv_reader = csv::ReaderBuilder::new()
+fn compile_krokhin_retention_coefficients(out_dir: &str) -> Result<()> {
+    let dest_path = Path::new(&out_dir).join("krokhin_hydrophobicity.rs");
+    let data_v1 = csv::ReaderBuilder::new()
         .trim(csv::Trim::All)
-        .from_path("data/krokhin_wilkins_retention_coefficients.csv")?;
-
-    // get subatomic particle data
-    let data = csv_reader
+        .from_path("data/krokhin_retention_coefficients_v1.csv")?
         .deserialize()
-        .collect::<Result<Vec<KrokhinWilkinsRetentionCoefficientRecord>, _>>()?;
+        .collect::<Result<Vec<KrokhinWilkinsRetentionCoefficientRecordV1>, _>>()?;
+
+    let data_v3 = csv::ReaderBuilder::new()
+        .trim(csv::Trim::All)
+        .from_path("data/krokhin_retention_coefficients_v3.csv")?
+        .deserialize()
+        .collect::<Result<Vec<KrokhinWilkinsRetentionCoefficientRecordV3>, _>>()?;
 
     // render template
     let mut f = File::create(dest_path)?;
-    let data = RetentionCoefficientTemplate { data };
+    let data = RetentionCoefficientTemplate { data_v1, data_v3 };
     writeln!(f, "{}", data.render()?)?;
 
     Ok(())
@@ -177,7 +195,7 @@ fn main() -> Result<()> {
     compile_amino_acids(out_dir.as_str())?;
     compile_elements(out_dir.as_str())?;
     compile_subatomic_particles(out_dir.as_str())?;
-    compile_kw_retention_coefficients(out_dir.as_str())?;
+    compile_krokhin_retention_coefficients(out_dir.as_str())?;
 
     // Setup instructions
     println!("cargo:rerun-if-changed=data/canonical_amino_acids.csv");

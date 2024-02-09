@@ -1,0 +1,53 @@
+{% for record in data_v1 %}
+/// Krokhin Wilkins Retention Coefficient V1 for {{ record.0 }}
+///
+pub const RETENTION_COEFFICIENT_V1_{{ record.0|upper_snake_case }}: RetentionCoefficientV1 = RetentionCoefficientV1 { 
+    rn: {{ record.2|f32_to_string }}, 
+    rcnt: {{ record.3|f32_to_string }},
+};
+{% endfor %}
+
+/// Get Krokhin Wilkins Retention Coefficient V1 for an amino acid by amino acid one letter code
+///
+/// # Arguments
+/// * `code` - One letter amino acid code
+/// 
+pub fn get_retention_coefficient_v1(code: char) -> Result<&'static RetentionCoefficientV1> {
+    match code {
+{% for record in data_v1 %}
+        '{{ record.1 }}' => Ok(&RETENTION_COEFFICIENT_V1_{{ record.0|upper_snake_case }}),
+{% endfor %}
+        _ => bail!("No Krokhin Wilkins Retention Coefficient for '{}'", code),
+    }
+}
+
+{% for record in data_v3 %}
+/// Krokhin Wilkins Retention Coefficient V3 for {{ record.0 }}
+///
+pub const RETENTION_COEFFICIENT_V3_{{ record.0|upper_snake_case }}: RetentionCoefficientV3 = RetentionCoefficientV3 { 
+    rc: {{ record.2|f32_to_string }},
+    rc1: {{ record.3|f32_to_string }},
+    rc2: {{ record.4|f32_to_string }},
+    rcn: {{ record.5|f32_to_string }},
+    rcn_1: {{ record.6|f32_to_string }},
+    rcs: {{ record.7|f32_to_string }},
+    rc1s: {{ record.8|f32_to_string }},
+    rc2s: {{ record.9|f32_to_string }},
+    rcns: {{ record.10|f32_to_string }},
+    rcn_1s: {{ record.11|f32_to_string }},
+};
+{% endfor %}
+
+/// Get Krokhin Wilkins Retention Coefficient V3 for an amino acid by amino acid one letter code
+/// 
+/// # Arguments
+/// * `code` - One letter amino acid code
+/// 
+pub fn get_retention_coefficient_v3(code: char) -> Result<&'static RetentionCoefficientV3> {
+    match code {
+{% for record in data_v3 %}
+        '{{ record.1 }}' => Ok(&RETENTION_COEFFICIENT_V3_{{ record.0|upper_snake_case }}),
+{% endfor %}
+        _ => bail!("No Krokhin Wilkins Retention Coefficient for '{}'", code),
+    }
+}
