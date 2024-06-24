@@ -363,8 +363,6 @@ mod tests {
 
         let tmp_ptm_file_path = tmp_path.join("dihardts_omicstools_ptm.csv");
 
-        println!("Writing PTM file to: {:?}", tmp_ptm_file_path);
-
         let mut writer = csv::WriterBuilder::new()
             .has_headers(true)
             .delimiter(b',')
