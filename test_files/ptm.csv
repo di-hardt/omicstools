@@ -1,0 +1,6 @@
+name,amino_acid,mass_delta,mod_type,position
+Mod0,C,57.021464,Static,Anywhere
+Mod1,M,15.994915,Variable,Terminus-N
+Mod2,R,47.123,Static,Terminus-C
+Mod3,K,123.456,Variable,Bond-N
+Mod4,D,185.9,Static,Bond-C
