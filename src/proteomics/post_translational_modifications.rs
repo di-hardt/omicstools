@@ -97,12 +97,12 @@ impl ToString for ModificationType {
     }
 }
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Serialize)]
 pub struct PostTranslationalModification {
     name: String,
     amino_acid: &'static dyn AminoAcid,
     mass_delta: f64,
-    #[serde(skip)]
+    #[serde(skip_serializing)]
     total_mono_mass: f64,
     mod_type: ModificationType,
     position: Position,
@@ -235,6 +235,33 @@ impl PostTranslationalModification {
     }
 }
 
+// manual deserialization to calculate total mono mass
+impl<'de> serde::Deserialize<'de> for PostTranslationalModification {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let (name, amino_acid, mass_delta, mod_type, position) =
+            <(String, char, f64, String, String)>::deserialize(deserializer)?;
+
+        let amino_acid =
+            crate::chemistry::amino_acid::get_amino_acid_by_one_letter_code(amino_acid)
+                .map_err(serde::de::Error::custom)?;
+
+        let mod_type =
+            ModificationType::from_str(mod_type.as_str()).map_err(serde::de::Error::custom)?;
+        let position = Position::from_str(position.as_str()).map_err(serde::de::Error::custom)?;
+
+        return Ok(PostTranslationalModification::new(
+            name.as_str(),
+            amino_acid,
+            mass_delta,
+            mod_type,
+            position,
+        ));
+    }
+}
+
 // Maling the struct Send + Sync should be save as it is a read-only struct
 unsafe impl Send for PostTranslationalModification {}
 
@@ -251,13 +278,14 @@ mod tests {
     // internal imports
     use super::*;
 
-    const EXPECTED_AMINO_ACIDS: [(&str, char, f64, ModificationType, Position); 5] = [
+    const EXPECTED_AMINO_ACIDS: [(&str, char, f64, ModificationType, Position, f64); 5] = [
         (
             "Mod0",
             'C',
             57.021464,
             ModificationType::Static,
             Position::Anywhere,
+            103.009184505 + 57.021464,
         ),
         (
             "Mod1",
@@ -265,6 +293,7 @@ mod tests {
             15.994915,
             ModificationType::Variable,
             Position::Terminus(Terminus::N),
+            131.040484645 + 15.994915,
         ),
         (
             "Mod2",
@@ -272,6 +301,7 @@ mod tests {
             47.123,
             ModificationType::Static,
             Position::Terminus(Terminus::C),
+            156.101111050 + 47.123,
         ),
         (
             "Mod3",
@@ -279,6 +309,7 @@ mod tests {
             123.456,
             ModificationType::Variable,
             Position::Bond(Terminus::N),
+            128.094963050 + 123.456,
         ),
         (
             "Mod4",
@@ -286,6 +317,7 @@ mod tests {
             185.90,
             ModificationType::Static,
             Position::Bond(Terminus::C),
+            115.026943065 + 185.90,
         ),
     ];
 
@@ -341,6 +373,7 @@ mod tests {
             assert_eq!(*ptm.get_mass_delta(), expected_data.2);
             assert_eq!(*ptm.get_mod_type(), expected_data.3);
             assert_eq!(*ptm.get_position(), expected_data.4);
+            assert_eq!(*ptm.get_total_mono_mass(), expected_data.5);
         }
     }
 
