@@ -262,7 +262,7 @@ impl<'de> serde::Deserialize<'de> for PostTranslationalModification {
     }
 }
 
-// Maling the struct Send + Sync should be save as it is a read-only struct
+// Making the struct Send + Sync should be save as it is a read-only struct
 unsafe impl Send for PostTranslationalModification {}
 
 #[cfg(test)]
