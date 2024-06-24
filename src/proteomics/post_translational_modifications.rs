@@ -25,33 +25,52 @@ impl FromStr for Position {
             return Ok(Position::Anywhere);
         }
 
-        if s_lower.starts_with("terminus_") {
+        if s_lower.starts_with("terminus-") {
             let terminus_str = s_lower[9..].to_lowercase();
             let terminus = Terminus::from_str(terminus_str.as_str())?;
             return Ok(Position::Terminus(terminus));
         }
 
-        if s_lower.starts_with("bond_") {
+        if s_lower.starts_with("bond-") {
             let terminus_str = s_lower[5..].to_lowercase();
             let terminus = Terminus::from_str(terminus_str.as_str())?;
             return Ok(Position::Bond(terminus));
         }
 
-        bail!("Invalid position. Valid format: `anywhere`, `terminus_<N|C>`, `bond_<N|C>`");
+        bail!("Invalid position. Valid format: `Anywhere`, `Terminus-<N|C>`, `Bond-<N|C>`");
     }
 }
 
 impl ToString for Position {
     fn to_string(&self) -> String {
         match self {
-            Self::Anywhere => "anywhere".to_owned(),
-            Self::Terminus(terminus) => format!("terminus_{}", terminus.to_string()),
-            Self::Bond(terminus) => format!("bond_{}", terminus.to_string()),
+            Self::Anywhere => "Anywhere".to_owned(),
+            Self::Terminus(terminus) => format!("Terminus-{}", terminus.to_string()),
+            Self::Bond(terminus) => format!("Bond-{}", terminus.to_string()),
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+impl serde::Serialize for Position {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        return serializer.serialize_str(self.to_string().as_str());
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Position {
+    fn deserialize<D>(deserializer: D) -> Result<Position, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        return Position::from_str(s.as_str()).map_err(serde::de::Error::custom);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum ModificationType {
     Static,
     Variable,
@@ -64,7 +83,7 @@ impl FromStr for ModificationType {
         match s.to_lowercase().as_str() {
             "static" => Ok(ModificationType::Static),
             "variable" => Ok(ModificationType::Variable),
-            _ => bail!("Invalid modification type: valid types are `static` or `variable`"),
+            _ => bail!("Invalid modification type: valid types are `Static` or `Variable`"),
         }
     }
 }
@@ -72,17 +91,18 @@ impl FromStr for ModificationType {
 impl ToString for ModificationType {
     fn to_string(&self) -> String {
         match self {
-            Self::Static => "static".to_owned(),
-            Self::Variable => "variable".to_owned(),
+            Self::Static => "Static".to_owned(),
+            Self::Variable => "Variable".to_owned(),
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct PostTranslationalModification {
     name: String,
     amino_acid: &'static dyn AminoAcid,
     mass_delta: f64,
+    #[serde(skip)]
     total_mono_mass: f64,
     mod_type: ModificationType,
     position: Position,
@@ -220,25 +240,72 @@ unsafe impl Send for PostTranslationalModification {}
 
 #[cfg(test)]
 mod tests {
+    // std imports
+    use std::env;
+    use std::fs::read_to_string;
+    use std::fs::remove_file;
+    use std::path::Path;
+
+    use crate::chemistry::amino_acid::get_amino_acid_by_one_letter_code;
+
+    // internal imports
     use super::*;
+
+    const EXPECTED_AMINO_ACIDS: [(&str, char, f64, ModificationType, Position); 5] = [
+        (
+            "Mod0",
+            'C',
+            57.021464,
+            ModificationType::Static,
+            Position::Anywhere,
+        ),
+        (
+            "Mod1",
+            'M',
+            15.994915,
+            ModificationType::Variable,
+            Position::Terminus(Terminus::N),
+        ),
+        (
+            "Mod2",
+            'R',
+            47.123,
+            ModificationType::Static,
+            Position::Terminus(Terminus::C),
+        ),
+        (
+            "Mod3",
+            'K',
+            123.456,
+            ModificationType::Variable,
+            Position::Bond(Terminus::N),
+        ),
+        (
+            "Mod4",
+            'D',
+            185.90,
+            ModificationType::Static,
+            Position::Bond(Terminus::C),
+        ),
+    ];
 
     #[test]
     fn test_position_from_str() {
         assert_eq!(Position::from_str("anywhere").unwrap(), Position::Anywhere);
         assert_eq!(
-            Position::from_str("terminus_n").unwrap(),
+            Position::from_str("Terminus-N").unwrap(),
             Position::Terminus(Terminus::N)
         );
         assert_eq!(
-            Position::from_str("terminus_c").unwrap(),
+            Position::from_str("Terminus-C").unwrap(),
             Position::Terminus(Terminus::C)
         );
         assert_eq!(
-            Position::from_str("bond_n").unwrap(),
+            Position::from_str("Bond-N").unwrap(),
             Position::Bond(Terminus::N)
         );
         assert_eq!(
-            Position::from_str("bond_c").unwrap(),
+            Position::from_str("Bond-C").unwrap(),
             Position::Bond(Terminus::C)
         );
         assert!(Position::from_str("X").is_err());
@@ -247,13 +314,73 @@ mod tests {
     #[test]
     fn test_type_from_str() {
         assert_eq!(
-            ModificationType::from_str("static").unwrap(),
+            ModificationType::from_str("Static").unwrap(),
             ModificationType::Static
         );
         assert_eq!(
-            ModificationType::from_str("variable").unwrap(),
+            ModificationType::from_str("Variable").unwrap(),
             ModificationType::Variable
         );
         assert!(ModificationType::from_str("X").is_err());
+    }
+
+    #[test]
+    fn test_deserialization() {
+        let ptm_file_path = Path::new("test_files/ptm.csv");
+        let csv_reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .delimiter(b',')
+            .from_path(ptm_file_path)
+            .unwrap();
+
+        for (ptm_index, ptm) in csv_reader.into_deserialize().enumerate() {
+            let ptm: PostTranslationalModification = ptm.unwrap();
+            let expected_data = &EXPECTED_AMINO_ACIDS[ptm_index];
+            assert_eq!(ptm.get_name(), expected_data.0);
+            assert_eq!(*ptm.get_amino_acid().get_code(), expected_data.1);
+            assert_eq!(*ptm.get_mass_delta(), expected_data.2);
+            assert_eq!(*ptm.get_mod_type(), expected_data.3);
+            assert_eq!(*ptm.get_position(), expected_data.4);
+        }
+    }
+
+    #[test]
+    fn test_serialization() {
+        let ptms: Vec<PostTranslationalModification> = EXPECTED_AMINO_ACIDS
+            .iter()
+            .map(|data| {
+                PostTranslationalModification::new(
+                    data.0,
+                    get_amino_acid_by_one_letter_code(data.1).unwrap(),
+                    data.2,
+                    data.3.clone(),
+                    data.4.clone(),
+                )
+            })
+            .collect();
+
+        let tmp_path = env::temp_dir();
+
+        let tmp_ptm_file_path = tmp_path.join("dihardts_omicstools_ptm.csv");
+
+        println!("Writing PTM file to: {:?}", tmp_ptm_file_path);
+
+        let mut writer = csv::WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b',')
+            .from_path(&tmp_ptm_file_path)
+            .unwrap();
+
+        for ptm in ptms.iter() {
+            writer.serialize(ptm).unwrap();
+        }
+
+        writer.flush().unwrap();
+
+        let tmp_ptm_file_content = std::fs::read_to_string(&tmp_ptm_file_path).unwrap();
+        let expected_ptm_file_content = read_to_string("test_files/ptm.csv").unwrap();
+        assert_eq!(tmp_ptm_file_content, expected_ptm_file_content);
+
+        remove_file(&tmp_ptm_file_path).unwrap();
     }
 }

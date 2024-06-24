@@ -32,6 +32,31 @@ pub trait AminoAcid: Sync + Send {
     fn get_average_mass(&self) -> &f64;
 }
 
+impl serde::Serialize for &dyn AminoAcid {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.get_one_letter_code().serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for &dyn AminoAcid {
+    fn deserialize<D>(deserializer: D) -> Result<&'static dyn AminoAcid, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let code = char::deserialize(deserializer)?;
+        match get_amino_acid_by_one_letter_code(code) {
+            Ok(amino_acid) => Ok(amino_acid),
+            Err(_) => Err(serde::de::Error::custom(format!(
+                "Unknown amino acid code: {}",
+                code
+            ))),
+        }
+    }
+}
+
 /// Contains various information about an amino acid.
 ///
 pub struct CanonicalAminoAcid {
@@ -134,6 +159,15 @@ impl AminoAcid for NonCanonicalAminoAcid {
     }
 }
 
+impl serde::Serialize for NonCanonicalAminoAcid {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.one_letter_code.serialize(serializer)
+    }
+}
+
 // Include amino acids from data/canonical_amino_acids.csv & data/non_canonical_amino_acids.csv
 include!(concat!(env!("OUT_DIR"), "/amino_acid.rs"));
 
@@ -167,6 +201,24 @@ pub fn get_hydropathicity_kd(code: char) -> Result<f64> {
         _ => bail!("Unknown amino acid code: {}", code),
     }
 }
+
+// /// Deserializes amino acid from one letter code.
+// ///
+// pub fn deserialize_amino_acid_from_code<'de, D>(
+//     deserializer: D,
+// ) -> Result<&'de dyn AminoAcid, D::Error>
+// where
+//     D: serde::Deserializer<'de>,
+// {
+//     let code = char::deserialize(deserializer)?;
+//     match get_amino_acid_by_one_letter_code(code) {
+//         Ok(amino_acid) => Ok(amino_acid),
+//         Err(_) => Err(serde::de::Error::custom(format!(
+//             "Unknown amino acid code: {}",
+//             code
+//         ))),
+//     }
+// }
 
 #[cfg(test)]
 mod test {

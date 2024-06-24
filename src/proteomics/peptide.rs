@@ -17,7 +17,7 @@ lazy_static! {
         + get_element_by_symbol("O").unwrap().get_mono_mass();
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum Terminus {
     N,
     C,
