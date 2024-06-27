@@ -97,6 +97,7 @@ impl ToString for ModificationType {
     }
 }
 
+// Deserialization is implemented manually to calculate the total mono mass on the fly
 #[derive(Clone, serde::Serialize)]
 pub struct PostTranslationalModification {
     name: String,
@@ -235,28 +236,41 @@ impl PostTranslationalModification {
     }
 }
 
-// manual deserialization to calculate total mono mass
+/// Helper to deserialize the PostTranslationalModification without
+/// without the total mono mass
+/// which is calculated when the struct is converted using `into()?s
+///
+#[derive(serde::Deserialize)]
+struct PostTranslationalModificationFields {
+    name: String,
+    amino_acid: &'static dyn AminoAcid,
+    mass_delta: f64,
+    mod_type: ModificationType,
+    position: Position,
+}
+
+// Convert the helper into a PostTranslationalModification
+impl Into<PostTranslationalModification> for PostTranslationalModificationFields {
+    fn into(self) -> PostTranslationalModification {
+        return PostTranslationalModification {
+            name: self.name,
+            amino_acid: self.amino_acid,
+            mass_delta: self.mass_delta,
+            mod_type: self.mod_type,
+            position: self.position,
+            total_mono_mass: self.amino_acid.get_mono_mass() + self.mass_delta,
+        };
+    }
+}
+
+// Manual deserialization to calculate total mono mass after deserialize
 impl<'de> serde::Deserialize<'de> for PostTranslationalModification {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
     {
-        let (name, amino_acid, mass_delta, mod_type, position) =
-            <(
-                String,
-                &'static dyn AminoAcid,
-                f64,
-                ModificationType,
-                Position,
-            )>::deserialize(deserializer)?;
-
-        return Ok(PostTranslationalModification::new(
-            name.as_str(),
-            amino_acid,
-            mass_delta,
-            mod_type,
-            position,
-        ));
+        let fields = <PostTranslationalModificationFields>::deserialize(deserializer)?;
+        return Ok(fields.into());
     }
 }
 
