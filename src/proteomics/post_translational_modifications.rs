@@ -242,15 +242,13 @@ impl<'de> serde::Deserialize<'de> for PostTranslationalModification {
         D: serde::de::Deserializer<'de>,
     {
         let (name, amino_acid, mass_delta, mod_type, position) =
-            <(String, char, f64, String, String)>::deserialize(deserializer)?;
-
-        let amino_acid =
-            crate::chemistry::amino_acid::get_amino_acid_by_one_letter_code(amino_acid)
-                .map_err(serde::de::Error::custom)?;
-
-        let mod_type =
-            ModificationType::from_str(mod_type.as_str()).map_err(serde::de::Error::custom)?;
-        let position = Position::from_str(position.as_str()).map_err(serde::de::Error::custom)?;
+            <(
+                String,
+                &'static dyn AminoAcid,
+                f64,
+                ModificationType,
+                Position,
+            )>::deserialize(deserializer)?;
 
         return Ok(PostTranslationalModification::new(
             name.as_str(),
