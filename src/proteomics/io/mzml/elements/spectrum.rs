@@ -22,5 +22,5 @@ pub struct Spectrum {
     #[serde(rename = "precursorList")]
     pub precursor_list: Option<PrecursorList>,
     #[serde(rename = "binaryDataArrayList")]
-    pub binary_data_array_list: Vec<BinaryDataArrayList>,
+    pub binary_data_array_list: BinaryDataArrayList,
 }
