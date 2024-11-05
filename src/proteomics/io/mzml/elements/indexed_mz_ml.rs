@@ -8,7 +8,10 @@ use super::{
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IndexedMzML {
+pub struct IndexedMzML<R>
+where
+    R: 'static,
+{
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
     #[serde(rename = "@xmlns:xsi")]
@@ -19,7 +22,7 @@ pub struct IndexedMzML {
     #[serde(alias = "@schemaLocation")]
     pub xsi_schema_location: String,
     #[serde(rename = "mzML")]
-    pub mz_ml: MzML,
+    pub mz_ml: MzML<R>,
     #[serde(rename = "indexList")]
     pub index_list: IndexList,
     #[serde(rename = "indexListOffset")]

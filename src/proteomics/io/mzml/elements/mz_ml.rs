@@ -4,12 +4,14 @@ use serde::{Deserialize, Serialize};
 use super::{
     cv_list::CvList, data_processing_list::DataProcessingList, file_description::FileDescription,
     instrument_configuration_list::InstrumentConfigurationList,
-    referenceable_param_group_list::ReferenceableParamGroupList, run::Run,
-    software_list::SoftwareList,
+    referenceable_param_group_list::ReferenceableParamGroupList, software_list::SoftwareList,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct MzML {
+pub struct MzML<R>
+where
+    R: 'static,
+{
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
     #[serde(rename = "@xmlns:xsi")]
@@ -36,5 +38,5 @@ pub struct MzML {
     #[serde(rename = "dataProcessingList")]
     pub data_processing_list: DataProcessingList,
     #[serde(rename = "run")]
-    pub run: Run,
+    pub run: R,
 }

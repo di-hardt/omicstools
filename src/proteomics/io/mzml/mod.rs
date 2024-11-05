@@ -5,6 +5,7 @@ pub mod error;
 pub mod index;
 /// Indexed MzML reader
 pub mod indexed_reader;
+pub mod indexed_reader_new;
 /// MzML indexer
 pub mod indexer;
 /// Functions to read spectra information from MzML files
