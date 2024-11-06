@@ -108,9 +108,25 @@ mod test {
         let spectrum = reader
             .get_spectrum("controllerType=0 controllerNumber=1 scan=4045")
             .unwrap();
-        println!("{:?}", spectrum);
+        for bin in spectrum.binary_data_array_list.binary_data_arrays.iter() {
+            let type_cvparam = bin
+                .cv_params
+                .iter()
+                .find(|cv_param| {
+                    cv_param.accession == "MS:1000514"
+                        || cv_param.accession == "MS:1000515"
+                        || cv_param.accession == "MS:1000516"
+                        || cv_param.accession == "MS:1000517"
+                        || cv_param.accession == "MS:1000595"
+                        || cv_param.accession == "MS:1000617"
+                        || cv_param.accession == "MS:1000786"
+                        || cv_param.accession == "MS:1000820"
+                        || cv_param.accession == "MS:1000821"
+                        || cv_param.accession == "MS:1000822"
+                })
+                .unwrap();
 
-        let chromatogram = reader.get_chromatogram("TIC").unwrap();
-        println!("{:?}", chromatogram);
+            println!("{} => {:?}", type_cvparam.name, bin.deflate_data());
+        }
     }
 }

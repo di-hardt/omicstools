@@ -1,7 +1,6 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
 use super::{
     file_checksum::FileChecksum, index_list::IndexList, index_list_offset::IndexListOffset,
     mz_ml::MzML,
@@ -29,4 +28,14 @@ where
     pub index_list_offset: IndexListOffset,
     #[serde(rename = "fileChecksum")]
     pub file_checksum: FileChecksum,
+}
+
+impl<R> IndexedMzML<R>
+where
+    R: 'static,
+{
+    pub fn validate(&self) -> Result<()> {
+        self.mz_ml.validate()?;
+        Ok(())
+    }
 }

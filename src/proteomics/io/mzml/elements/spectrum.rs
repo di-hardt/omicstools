@@ -1,7 +1,7 @@
-// 3rd party imports
 use serde::{Deserialize, Serialize};
 
-// Local imports
+use anyhow::Result;
+
 use super::{
     binary_data_array_list::BinaryDataArrayList, cv_param::CvParam, precursor_list::PrecursorList,
     scan_list::ScanList,
@@ -23,4 +23,11 @@ pub struct Spectrum {
     pub precursor_list: Option<PrecursorList>,
     #[serde(rename = "binaryDataArrayList")]
     pub binary_data_array_list: BinaryDataArrayList,
+}
+
+impl Spectrum {
+    pub fn validate(&self) -> Result<()> {
+        self.binary_data_array_list.validate()?;
+        Ok(())
+    }
 }

@@ -40,18 +40,15 @@ mod test {
 
     #[test]
     fn test_reader_new() {
-        // let mzml_path = PathBuf::from("test_files/spectra_small.mzML");
-        let mzml_path = PathBuf::from("/Users/winkelhardtdi/Documents/datasets/PXD028735/LFQ_Orbitrap_DDA_Condition_A_Sample_Alpha_01.mzML");
+        let mzml_path = PathBuf::from("test_files/spectra_small.mzML");
         let mut mzml_file = BufReader::with_capacity(2097152, File::open(mzml_path).unwrap());
         let mzml = ReaderNew::read(&mut mzml_file).unwrap();
         match mzml {
             MzML::MzML(mz_ml) => {
-                println!("MzML");
-                println!("{:?}", mz_ml.data_processing_list);
+                assert!(mz_ml.validate().is_ok());
             }
             MzML::IndexedMzML(indexed_mz_ml) => {
-                println!("IndexedMzML");
-                println!("{:?}", indexed_mz_ml.mz_ml.data_processing_list);
+                assert!(indexed_mz_ml.validate().is_ok());
             }
         }
     }

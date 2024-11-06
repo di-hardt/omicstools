@@ -1,7 +1,6 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
 use super::{binary_data_array_list::BinaryDataArrayList, cv_param::CvParam};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -16,4 +15,13 @@ pub struct Chromatogram {
     pub cv_params: Vec<CvParam>,
     #[serde(rename = "binaryDataArrayList")]
     pub binary_data_array_list: Vec<BinaryDataArrayList>,
+}
+
+impl Chromatogram {
+    pub fn validate(&self) -> Result<()> {
+        for binary_data_array_list in &self.binary_data_array_list {
+            binary_data_array_list.validate()?;
+        }
+        Ok(())
+    }
 }

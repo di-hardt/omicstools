@@ -1,7 +1,6 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
 use super::{
     activation::Activation, isolation_window::IsolationWindow, selected_ion_list::SelectedIonList,
 };
@@ -15,5 +14,12 @@ pub struct Precursor {
     #[serde(rename = "selectedIonList")]
     pub selected_ion_list: SelectedIonList,
     #[serde(rename = "activation")]
-    pub activations: Activation,
+    pub activation: Activation,
+}
+
+impl Precursor {
+    pub fn validate(&self) -> Result<()> {
+        self.activation.validate()?;
+        Ok(())
+    }
 }

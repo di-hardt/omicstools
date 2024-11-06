@@ -5,8 +5,8 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use flate2::read::ZlibDecoder;
 use serde::{Deserialize, Serialize};
 
-// Local imports
 use super::{binary::Binary, cv_param::CvParam};
+use crate::build_cv_params_validator;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BinaryDataArray {
@@ -16,6 +16,16 @@ pub struct BinaryDataArray {
     pub cv_params: Vec<CvParam>,
     #[serde(rename = "binary")]
     pub binary: Binary,
+}
+
+impl BinaryDataArray {
+    pub fn validate(&self) -> Result<()> {
+        if self.binary.data.len() != self.encoded_length {
+            bail!("Encoded length does not match data length");
+        }
+        self.validate_cv_params(&self.cv_params, "binaryDataArray")?;
+        Ok(())
+    }
 }
 
 impl BinaryDataArray {
@@ -74,4 +84,15 @@ impl BinaryDataArray {
             _ => bail!("Unknown data type cvParam"),
         }
     }
+}
+
+build_cv_params_validator! {
+    BinaryDataArray,
+    [
+        "MS:1000572", // compression type
+        "MS:1000513", // data array
+        "MS:1000518", // data type
+    ],
+    [],
+    []
 }

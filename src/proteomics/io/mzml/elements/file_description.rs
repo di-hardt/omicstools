@@ -1,9 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{file_content::FileContent, source_file_list::SourceFileList};
-
-// Local imports
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileDescription {
@@ -11,4 +9,11 @@ pub struct FileDescription {
     pub file_content: FileContent,
     #[serde(rename = "sourceFileList")]
     pub source_file_list: SourceFileList,
+}
+
+impl FileDescription {
+    pub fn validate(&self) -> Result<()> {
+        self.source_file_list.validate()?;
+        Ok(())
+    }
 }

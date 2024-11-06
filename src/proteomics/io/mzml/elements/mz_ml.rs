@@ -1,4 +1,4 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -39,4 +39,14 @@ where
     pub data_processing_list: DataProcessingList,
     #[serde(rename = "run")]
     pub run: R,
+}
+
+impl<R> MzML<R>
+where
+    R: 'static,
+{
+    pub fn validate(&self) -> Result<()> {
+        self.file_description.validate()?;
+        Ok(())
+    }
 }
