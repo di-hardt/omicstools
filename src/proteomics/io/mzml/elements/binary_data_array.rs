@@ -5,15 +5,26 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use flate2::read::ZlibDecoder;
 use serde::{Deserialize, Serialize};
 
-use super::{binary::Binary, cv_param::CvParam};
+use super::{
+    binary::Binary, cv_param::CvParam, referenceable_param_group_ref::ReferenceableParamGroupRef,
+    user_param::UserParam,
+};
 use crate::build_cv_params_validator;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BinaryDataArray {
     #[serde(rename = "@encodedLength")]
     pub encoded_length: usize,
+    #[serde(rename = "@arrayLength")]
+    pub array_length: Option<usize>,
+    #[serde(rename = "@dataProcessingRef")]
+    pub data_processing_ref: Option<String>,
+    #[serde(default, rename = "referenceableParamGroupRef")]
+    pub referenceable_param_group_ref: Vec<ReferenceableParamGroupRef>,
     #[serde(default, rename = "cvParam")]
     pub cv_params: Vec<CvParam>,
+    #[serde(default, rename = "userParam")]
+    pub user_params: Vec<UserParam>,
     #[serde(rename = "binary")]
     pub binary: Binary,
 }

@@ -13,6 +13,9 @@ pub struct BinaryDataArrayList {
 
 impl BinaryDataArrayList {
     pub fn validate(&self) -> Result<()> {
+        if self.count < 2 {
+            bail!("The count attribute ({}) must be at least 2", self.count);
+        }
         if self.count != self.binary_data_arrays.len() {
             bail!(
                 "The count attribute ({}) does not match the number of binaryDataArray elements ({})",
