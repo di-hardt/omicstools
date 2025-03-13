@@ -128,7 +128,7 @@ impl FallibleIterator for Peptides {
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         loop {
             // First empty the buffer
-            while let Some(peptide) = self.peptide_buffer.pop() {
+            if let Some(peptide) = self.peptide_buffer.pop() {
                 return Ok(Some(peptide));
             }
             // Check if the end of the full digest is reached

@@ -52,7 +52,7 @@ impl Trypsin {
 
 impl Protease for Trypsin {
     fn get_name(&self) -> &str {
-        return NAME;
+        NAME
     }
 
     fn get_min_length(&self) -> Option<usize> {
@@ -91,7 +91,7 @@ impl Protease for Trypsin {
     }
 
     fn count_missed_cleavages(&self, sequence: &str) -> Result<usize> {
-        if sequence.len() == 0 {
+        if sequence.is_empty() {
             bail!("Empty sequence");
         }
         let mut missed_cleavages = CLEAVAGE_SITE_REGEX.find_iter(sequence).count();

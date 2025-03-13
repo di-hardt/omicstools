@@ -112,6 +112,7 @@ impl NewSimplePrecursor {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<SimplePrecursor> for NewSimplePrecursor {
     fn into(self) -> SimplePrecursor {
         SimplePrecursor::new(
@@ -196,90 +197,105 @@ impl Reader {
                         _ => {}
                     }
                 }
-                XmlEvent::Empty(event) => match event.local_name().as_ref() {
-                    b"cvParam" => match tag_path.as_slice() {
-                        b":spectrum" => {
-                            let attributes = xml_get_attributes(&event)?;
+                XmlEvent::Empty(event) => {
+                    if event.local_name().as_ref() == b"cvParam" {
+                        match tag_path.as_slice() {
+                            b":spectrum" => {
+                                let attributes = xml_get_attributes(&event)?;
 
-                            let accession: String =
-                                xml_get_value_of_attribute(b"accession", &attributes)?;
+                                let accession: String =
+                                    xml_get_value_of_attribute(b"accession", &attributes)?;
 
-                            if accession == "MS:1000511" {
-                                ms_level = match attributes
-                                    .iter()
-                                    .find(|attr| attr.key.as_ref() == b"value")
-                                {
-                                    Some(attr) => {
-                                        String::from(attr.unescape_value()?).parse::<u8>()?
+                                if accession == "MS:1000511" {
+                                    ms_level = match attributes
+                                        .iter()
+                                        .find(|attr| attr.key.as_ref() == b"value")
+                                    {
+                                        Some(attr) => {
+                                            String::from(attr.unescape_value()?).parse::<u8>()?
+                                        }
+                                        None => bail!("cvParam for MS level has no value"),
+                                    };
+                                }
+                            }
+                            b":spectrum:precursorList:precursor:isolationWindow" => {
+                                let attributes = xml_get_attributes(&event)?;
+
+                                let accession: Vec<u8> =
+                                    xml_get_value_of_attribute(b"accession", &attributes)?;
+
+                                match accession.as_slice() {
+                                    b"MS:1000827" => {
+                                        current_isolation_windows.0 = xml_get_value_of_attribute::<
+                                            String,
+                                        >(
+                                            b"value", &attributes
+                                        )
+                                        .context("cvParam MS:1000827 ion has no value")?
+                                        .parse()?;
                                     }
-                                    None => bail!("cvParam for MS level has no value"),
-                                };
+                                    b"MS:1000828" => {
+                                        current_isolation_windows.1 = xml_get_value_of_attribute::<
+                                            String,
+                                        >(
+                                            b"value", &attributes
+                                        )
+                                        .context("cvParam MS:1000828 ion has no value")?
+                                        .parse()?;
+                                    }
+                                    b"MS:1000829" => {
+                                        current_isolation_windows.2 = xml_get_value_of_attribute::<
+                                            String,
+                                        >(
+                                            b"value", &attributes
+                                        )
+                                        .context("cvParam MS:1000828 ion has no value")?
+                                        .parse()?;
+                                    }
+                                    _ => {}
+                                }
                             }
-                        }
-                        b":spectrum:precursorList:precursor:isolationWindow" => {
-                            let attributes = xml_get_attributes(&event)?;
+                            b":spectrum:precursorList:precursor:selectedIonList:selectedIon" => {
+                                let attributes = xml_get_attributes(&event)?;
 
-                            let accession: Vec<u8> =
-                                xml_get_value_of_attribute(b"accession", &attributes)?;
+                                let accession: Vec<u8> =
+                                    xml_get_value_of_attribute(b"accession", &attributes)?;
 
-                            match accession.as_slice() {
-                                b"MS:1000827" => {
-                                    current_isolation_windows.0 =
-                                        xml_get_value_of_attribute::<String>(b"value", &attributes)
-                                            .context("cvParam MS:1000827 ion has no value")?
-                                            .parse()?;
-                                }
-                                b"MS:1000828" => {
-                                    current_isolation_windows.1 =
-                                        xml_get_value_of_attribute::<String>(b"value", &attributes)
-                                            .context("cvParam MS:1000828 ion has no value")?
-                                            .parse()?;
-                                }
-                                b"MS:1000829" => {
-                                    current_isolation_windows.2 =
-                                        xml_get_value_of_attribute::<String>(b"value", &attributes)
-                                            .context("cvParam MS:1000828 ion has no value")?
-                                            .parse()?;
-                                }
-                                _ => {}
-                            }
-                        }
-                        b":spectrum:precursorList:precursor:selectedIonList:selectedIon" => {
-                            let attributes = xml_get_attributes(&event)?;
-
-                            let accession: Vec<u8> =
-                                xml_get_value_of_attribute(b"accession", &attributes)?;
-
-                            match accession.as_slice() {
-                                b"MS:1000744" => {
-                                    current_selected_ion =
-                                        xml_get_value_of_attribute::<String>(b"value", &attributes)
+                                match accession.as_slice() {
+                                    b"MS:1000744" => {
+                                        current_selected_ion =
+                                            xml_get_value_of_attribute::<String>(
+                                                b"value",
+                                                &attributes,
+                                            )
                                             .context("cvParam MS:1000744 ion has no value")?
                                             .parse()?;
-                                }
-                                b"MS:1000041" => {
-                                    current_selected_ion_charges.push(
-                                        xml_get_value_of_attribute::<String>(b"value", &attributes)
+                                    }
+                                    b"MS:1000041" => {
+                                        current_selected_ion_charges.push(
+                                            xml_get_value_of_attribute::<String>(
+                                                b"value",
+                                                &attributes,
+                                            )
                                             .context("cvParam MS:1000041 ion has no value")?
                                             .parse()?,
-                                    );
+                                        );
+                                    }
+                                    _ => {}
                                 }
-                                _ => {}
                             }
-                        }
-                        b":spectrum:precursorList:precursor:activation" => {
-                            // TODO: Parse activation method. Since the collision method is just a cvParam next to several others
-                            // where the accession is a SPECIFIC accession for on of the supported methods,
-                            // we need to add a table to look up wich accession actual refers to the collision method
-                            // Best include the complete table ontology
+                            b":spectrum:precursorList:precursor:activation" => {
+                                // TODO: Parse activation method. Since the collision method is just a cvParam next to several others
+                                // where the accession is a SPECIFIC accession for on of the supported methods,
+                                // we need to add a table to look up wich accession actual refers to the collision method
+                                // Best include the complete table ontology
 
-                            let attributes = xml_get_attributes(&event)?;
+                                let attributes = xml_get_attributes(&event)?;
 
-                            let accession: Vec<u8> =
-                                xml_get_value_of_attribute(b"accession", &attributes)?;
+                                let accession: Vec<u8> =
+                                    xml_get_value_of_attribute(b"accession", &attributes)?;
 
-                            match accession.as_slice() {
-                                b"MS:1000045" => {
+                                if accession.as_slice() == b"MS:1000045" {
                                     current_precursor.activation.1 = xml_get_value_of_attribute::<
                                         String,
                                     >(
@@ -287,42 +303,43 @@ impl Reader {
                                     )?
                                     .parse()?;
                                 }
-                                _ => {}
                             }
-                        }
-                        b":spectrum:binaryDataArrayList:binaryDataArray" => {
-                            let accession: Vec<u8> = xml_get_value_of_attribute(
-                                b"accession",
-                                &xml_get_attributes(&event)?,
-                            )?;
-                            match accession.as_slice() {
-                                b"MS:1000574" => {
-                                    current_binary_data_array.compression =
-                                        BinaryDataCompression::Zlib;
+                            b":spectrum:binaryDataArrayList:binaryDataArray" => {
+                                let accession: Vec<u8> = xml_get_value_of_attribute(
+                                    b"accession",
+                                    &xml_get_attributes(&event)?,
+                                )?;
+                                match accession.as_slice() {
+                                    b"MS:1000574" => {
+                                        current_binary_data_array.compression =
+                                            BinaryDataCompression::Zlib;
+                                    }
+                                    b"MS:1000576" => {
+                                        current_binary_data_array.compression =
+                                            BinaryDataCompression::None;
+                                    }
+                                    b"MS:1000514" => {
+                                        current_binary_data_array.target = BinaryDataTarget::MZ;
+                                    }
+                                    b"MS:1000515" => {
+                                        current_binary_data_array.target =
+                                            BinaryDataTarget::Intensity;
+                                    }
+                                    b"MS:1000521" => {
+                                        current_binary_data_array.value_type =
+                                            BinaryDataValueType::F32;
+                                    }
+                                    b"MS:1000523" => {
+                                        current_binary_data_array.value_type =
+                                            BinaryDataValueType::F64;
+                                    }
+                                    _ => {}
                                 }
-                                b"MS:1000576" => {
-                                    current_binary_data_array.compression =
-                                        BinaryDataCompression::None;
-                                }
-                                b"MS:1000514" => {
-                                    current_binary_data_array.target = BinaryDataTarget::MZ;
-                                }
-                                b"MS:1000515" => {
-                                    current_binary_data_array.target = BinaryDataTarget::Intensity;
-                                }
-                                b"MS:1000521" => {
-                                    current_binary_data_array.value_type = BinaryDataValueType::F32;
-                                }
-                                b"MS:1000523" => {
-                                    current_binary_data_array.value_type = BinaryDataValueType::F64;
-                                }
-                                _ => {}
                             }
+                            _ => {}
                         }
-                        _ => {}
-                    },
-                    _ => {}
-                },
+                    }
+                }
                 XmlEvent::Text(event) => {
                     if tag_path == b":spectrum:binaryDataArrayList:binaryDataArray:binary" {
                         current_binary_data_array.data = event.unescape()?.into_owned();

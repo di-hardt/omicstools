@@ -7,7 +7,6 @@ use std::path::Path;
 // 3rd party imports
 use anyhow::Result;
 use askama::Template;
-use csv;
 
 // Add support for type deserialization through `serde` when using `csv`-crate
 type CanonicalAminoAcidRecord = (String, char, String, String, f64, f64);
@@ -52,7 +51,7 @@ struct RetentionCoefficientTemplate {
 /// Custom filters for askama templates
 ///
 mod filters {
-    pub fn len<T>(vec: &Vec<T>) -> askama::Result<usize> {
+    pub fn len<T>(vec: &[T]) -> askama::Result<usize> {
         Ok(vec.len())
     }
 

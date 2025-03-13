@@ -7,13 +7,13 @@ impl SubatomicParticle {
     /// Returns the name of the subatomic particle.
     ///
     pub fn get_name(&self) -> &'static str {
-        return &self.name;
+        self.name
     }
 
     /// Returns the monoisotopic mass of the subatomic particle.
     ///
     pub fn get_mass(&self) -> &f64 {
-        return &self.mass;
+        &self.mass
     }
 }
 
@@ -28,7 +28,7 @@ mod test {
     // local imports
     use super::*;
 
-    const SUBATOMIC_PARTICLES_FILE: &'static str = "data/subatomic_particles.csv";
+    const SUBATOMIC_PARTICLES_FILE: &str = "data/subatomic_particles.csv";
 
     #[test]
     fn test_completeness() {

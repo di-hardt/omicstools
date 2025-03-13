@@ -65,7 +65,7 @@ pub fn calc_hydrophobicity(sequence: &str) -> Result<f32> {
         .chars()
         .take(3)
         .map(|code| {
-            Ok(get_retention_coefficient(code).context("Error when calculating hydrophobicity")?)
+            get_retention_coefficient(code).context("Error when calculating hydrophobicity")
         })
         .collect::<Result<Vec<_>>>()?;
 

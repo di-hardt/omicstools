@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-/// Index for a mzML file.   
+/// Index for a mzML file.
 /// Stores length of the the general information (everything before the spectrumList) ends,
 /// each spectrum's start and end offset and the default data processing reference and indention
 /// (for extraction of a single spectrum into a separate valid mzML file).
@@ -87,7 +87,7 @@ mod test {
     fn test_serialization_deserialization() {
         let file_path = Path::new("./test_files/spectra_small.mzML");
 
-        let index = Indexer::create_index(&file_path, None).unwrap();
+        let index = Indexer::create_index(file_path, None).unwrap();
 
         let serialized = index.to_json().unwrap();
         let deserialized_index: Index = Index::from_json(&serialized).unwrap();

@@ -63,7 +63,7 @@ impl<'a> IndexedReader<'a> {
     /// Returns the index of the mzML file.
     ///
     pub fn index(&self) -> &Index {
-        &self.index
+        self.index
     }
 
     /// Returns the raw spectrum for the given spectrum id as XML
@@ -86,7 +86,7 @@ impl<'a> IndexedReader<'a> {
         self.file.seek(io::SeekFrom::Start(0))?;
         let mut general_information: Vec<u8> = vec![0; self.index.get_general_information_len()];
         self.file.read_exact(general_information.as_mut_slice())?;
-        return Ok(general_information);
+        Ok(general_information)
     }
 
     /// Returns a valid MzML file for the given spectrum id.
@@ -199,7 +199,7 @@ impl<'a> IndexedReader<'a> {
         // mzml.extend_from_slice(hash_result.encode_hex::<String>().as_bytes());
         mzml.extend_from_slice(hex_hash.as_bytes());
         mzml.extend_from_slice(b"</fileChecksum>\n</indexedmzML>");
-        return Ok(mzml);
+        Ok(mzml)
     }
 }
 
@@ -212,7 +212,7 @@ mod test {
     fn test_spectra_reading() {
         let file_path = Path::new("./test_files/spectra_small.mzML");
 
-        let index = Indexer::create_index(&file_path, None).unwrap();
+        let index = Indexer::create_index(file_path, None).unwrap();
 
         let mut reader = IndexedReader::new(file_path, &index).unwrap();
 
@@ -226,7 +226,7 @@ mod test {
         let file_path = Path::new("./test_files/spectra_small.mzML");
         let wrong_file_path = Path::new("./test_files/not_existing.mzML");
 
-        let index = Indexer::create_index(&file_path, None).unwrap();
+        let index = Indexer::create_index(file_path, None).unwrap();
 
         let reader_result = IndexedReader::new(wrong_file_path, &index);
 

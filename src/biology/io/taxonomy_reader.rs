@@ -15,7 +15,11 @@ use crate::biology::taxonomy::{Taxonomy, TaxonomyTree};
 
 /// URL of the latest `taxdmp.zip` file
 ///
-pub const TAXDMP_URL: &'static str = "https://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip";
+pub const TAXDMP_URL: &str = "https://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip";
+
+/// Type alias for a taxonomy node
+///
+type TaxonomyNodeCollection = (HashMap<u64, String>, Vec<(u64, u64, String, u64)>);
 
 /// Creates a [TaxonomyTree](crate::biology::taxonomy::TaxonomyTree) from a `taxdmp.zip` file
 /// downloaded from [NCBI taxonomy](https://ftp.ncbi.nih.gov/pub/taxonomy/).
@@ -78,21 +82,21 @@ impl TaxonomyReader {
 
     fn read_delnodes(file: &mut zip::read::ZipFile) -> Result<Vec<u64>> {
         let reader = BufReader::new(file);
-        Ok(reader
+        reader
             .lines()
             .map(|line| {
-                Ok(line?
+                line?
                     .replace("|", "")
                     .trim()
                     .parse::<u64>()
-                    .context("Error when parsing taxonomy ID in delnodes.dmp")?)
+                    .context("Error when parsing taxonomy ID in delnodes.dmp")
             })
-            .collect::<Result<Vec<u64>>>()?)
+            .collect::<Result<Vec<u64>>>()
     }
 
     fn read_merged(file: &mut zip::read::ZipFile) -> Result<HashMap<u64, u64>> {
         let reader = BufReader::new(file);
-        Ok(reader
+        reader
             .lines()
             .map(|line| {
                 let line = line?;
@@ -111,12 +115,10 @@ impl TaxonomyReader {
                     .context("Error when parsing new taxonomy id in merged.dmp")?;
                 Ok((old_id, new_id))
             })
-            .collect::<Result<HashMap<u64, u64>>>()?)
+            .collect::<Result<HashMap<u64, u64>>>()
     }
 
-    fn read_nodes(
-        file: &mut zip::read::ZipFile,
-    ) -> Result<(HashMap<u64, String>, Vec<(u64, u64, String, u64)>)> {
+    fn read_nodes(file: &mut zip::read::ZipFile) -> Result<TaxonomyNodeCollection> {
         let mut ranks: HashMap<String, u64> = HashMap::new();
         let mut taxonomies: Vec<(u64, u64, String, u64)> = Vec::new();
         let reader = BufReader::new(file);

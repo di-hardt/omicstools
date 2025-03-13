@@ -1,11 +1,9 @@
-// std imports
+use std::fmt::Display;
 use std::str::FromStr;
 use std::string::ToString;
 
-// 3rd party imports
 use anyhow::{bail, Error};
 
-// internal imports
 use crate::chemistry::amino_acid::AminoAcid;
 use crate::proteomics::peptide::Terminus;
 
@@ -26,14 +24,14 @@ impl FromStr for Position {
         }
 
         if s_lower.starts_with("terminus-") {
-            let terminus_str = s_lower[9..].to_lowercase();
-            let terminus = Terminus::from_str(terminus_str.as_str())?;
+            let terminus_str = s_lower.strip_prefix("terminus-").unwrap_or_default();
+            let terminus = Terminus::from_str(terminus_str)?;
             return Ok(Position::Terminus(terminus));
         }
 
         if s_lower.starts_with("bond-") {
-            let terminus_str = s_lower[5..].to_lowercase();
-            let terminus = Terminus::from_str(terminus_str.as_str())?;
+            let terminus_str = s_lower.strip_prefix("bond-").unwrap_or_default();
+            let terminus = Terminus::from_str(terminus_str)?;
             return Ok(Position::Bond(terminus));
         }
 
@@ -41,12 +39,12 @@ impl FromStr for Position {
     }
 }
 
-impl ToString for Position {
-    fn to_string(&self) -> String {
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Anywhere => "Anywhere".to_owned(),
-            Self::Terminus(terminus) => format!("Terminus-{}", terminus.to_string()),
-            Self::Bond(terminus) => format!("Bond-{}", terminus.to_string()),
+            Self::Anywhere => write!(f, "Anywhere"),
+            Self::Terminus(terminus) => write!(f, "Terminus-{}", terminus),
+            Self::Bond(terminus) => write!(f, "Bond-{}", terminus),
         }
     }
 }
@@ -56,7 +54,7 @@ impl serde::Serialize for Position {
     where
         S: serde::ser::Serializer,
     {
-        return serializer.serialize_str(self.to_string().as_str());
+        serializer.serialize_str(self.to_string().as_str())
     }
 }
 
@@ -66,7 +64,7 @@ impl<'de> serde::Deserialize<'de> for Position {
         D: serde::de::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        return Position::from_str(s.as_str()).map_err(serde::de::Error::custom);
+        Position::from_str(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 
@@ -88,11 +86,11 @@ impl FromStr for ModificationType {
     }
 }
 
-impl ToString for ModificationType {
-    fn to_string(&self) -> String {
+impl Display for ModificationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Static => "Static".to_owned(),
-            Self::Variable => "Variable".to_owned(),
+            Self::Static => write!(f, "Static"),
+            Self::Variable => write!(f, "Variable"),
         }
     }
 }
@@ -118,121 +116,103 @@ impl PostTranslationalModification {
         position: Position,
     ) -> Self {
         let total_mono_mass = amino_acid.get_mono_mass() + mass_delta;
-        return Self {
+        Self {
             amino_acid,
             mass_delta,
             total_mono_mass,
             mod_type,
             position,
             name: name.to_owned(),
-        };
+        }
     }
 
     /// Returns the name
     ///
     pub fn get_name(&self) -> &str {
-        return &self.name.as_str();
+        self.name.as_str()
     }
 
     /// Returns the amino acid
     ///
     pub fn get_amino_acid(&self) -> &'static dyn AminoAcid {
-        return self.amino_acid;
+        self.amino_acid
     }
 
     /// Returns the mass delta
     ///
     pub fn get_mass_delta(&self) -> &f64 {
-        return &self.mass_delta;
+        &self.mass_delta
     }
 
     /// Returns the total mono mass
     /// This is the mass of the amino acid + the mass delta
     ///
     pub fn get_total_mono_mass(&self) -> &f64 {
-        return &self.total_mono_mass;
+        &self.total_mono_mass
     }
 
     /// Returns the modification type
     ///
     pub fn get_mod_type(&self) -> &ModificationType {
-        return &self.mod_type;
+        &self.mod_type
     }
 
     /// Returns the position
     ///
     pub fn get_position(&self) -> &Position {
-        return &self.position;
+        &self.position
     }
 
     /// Returns true if the modification is static
     ///
     pub fn is_static(&self) -> bool {
-        return self.mod_type == ModificationType::Static;
+        self.mod_type == ModificationType::Static
     }
 
     /// Returns true if the modification is variable
     ///
     pub fn is_variable(&self) -> bool {
-        return self.mod_type == ModificationType::Variable;
+        self.mod_type == ModificationType::Variable
     }
 
     /// Returns true if the modification is a terminus modification
     ///
     pub fn is_terminus(&self) -> bool {
-        return match self.position {
-            Position::Terminus(_) => true,
-            _ => false,
-        };
+        matches!(self.position, Position::Terminus(_))
     }
 
     /// Returns true if the modification is a terminus modification
     ///
     pub fn is_n_terminus(&self) -> bool {
-        return match self.position {
-            Position::Terminus(Terminus::N) => true,
-            _ => false,
-        };
+        self.position == Position::Terminus(Terminus::N)
     }
 
     /// Returns true if the modification is a terminus modification
     pub fn is_c_terminus(&self) -> bool {
-        return match self.position {
-            Position::Terminus(Terminus::C) => true,
-            _ => false,
-        };
+        self.position == Position::Terminus(Terminus::C)
     }
 
     /// Returns true if the modification is a bond modification
     ///
     pub fn is_bond(&self) -> bool {
-        return match self.position {
-            Position::Bond(_) => true,
-            _ => false,
-        };
+        matches!(self.position, Position::Bond(_))
     }
 
     /// Returns true if the modification is a N terminus bond modification
     ///
     pub fn is_n_bond(&self) -> bool {
-        return match self.position {
-            Position::Bond(Terminus::N) => true,
-            _ => false,
-        };
+        self.position == Position::Bond(Terminus::N)
     }
 
     /// Returns true if the modification is a C terminus bond modification
     pub fn is_c_bond(&self) -> bool {
-        return match self.position {
-            Position::Bond(Terminus::C) => true,
-            _ => false,
-        };
+        self.position == Position::Bond(Terminus::C)
     }
 
     /// Returns true if the modification is a terminus modification
     ///
     pub fn is_anywhere(&self) -> bool {
-        return self.position == Position::Anywhere;
+        self.position == Position::Anywhere
     }
 }
 
@@ -250,16 +230,17 @@ struct PostTranslationalModificationFields {
 }
 
 // Convert the helper into a PostTranslationalModification
+#[allow(clippy::from_over_into)]
 impl Into<PostTranslationalModification> for PostTranslationalModificationFields {
     fn into(self) -> PostTranslationalModification {
-        return PostTranslationalModification {
+        PostTranslationalModification {
             name: self.name,
             amino_acid: self.amino_acid,
             mass_delta: self.mass_delta,
             mod_type: self.mod_type,
             position: self.position,
             total_mono_mass: self.amino_acid.get_mono_mass() + self.mass_delta,
-        };
+        }
     }
 }
 
@@ -270,7 +251,7 @@ impl<'de> serde::Deserialize<'de> for PostTranslationalModification {
         D: serde::de::Deserializer<'de>,
     {
         let fields = <PostTranslationalModificationFields>::deserialize(deserializer)?;
-        return Ok(fields.into());
+        Ok(fields.into())
     }
 }
 

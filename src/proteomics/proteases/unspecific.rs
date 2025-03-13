@@ -33,7 +33,7 @@ impl Unspecific {
 
 impl Protease for Unspecific {
     fn get_name(&self) -> &str {
-        return NAME;
+        NAME
     }
 
     fn get_min_length(&self) -> Option<usize> {
@@ -86,13 +86,13 @@ mod tests {
     use super::*;
     use crate::proteomics::peptide::Peptide;
 
-    const EXPECTED_PEPTIDES_UNLIMITED: [&'static str; 28] = [
+    const EXPECTED_PEPTIDES_UNLIMITED: [&str; 28] = [
         "P", "PE", "PEP", "PEPT", "PEPTI", "PEPTID", "PEPTIDE", "E", "EP", "EPT", "EPTI", "EPTID",
         "EPTIDE", "P", "PT", "PTI", "PTID", "PTIDE", "T", "TI", "TID", "TIDE", "I", "ID", "IDE",
         "D", "DE", "E",
     ];
 
-    const EXPECTED_PEPTIDES_LIMITED: [&'static str; 7] =
+    const EXPECTED_PEPTIDES_LIMITED: [&str; 7] =
         ["PEPT", "PEPTI", "EPTI", "EPTID", "PTID", "PTIDE", "TIDE"];
 
     #[test]

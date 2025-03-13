@@ -9,25 +9,25 @@ impl Element {
     /// Returns the name of the element.
     ///
     pub fn get_name(&self) -> &'static str {
-        return &self.name;
+        self.name
     }
 
     /// Returns the symbol of the element.
     ///
     pub fn get_symbol(&self) -> &'static str {
-        return &self.symbol;
+        self.symbol
     }
 
     /// Returns the monoisotopic mass of the element.
     ///
     pub fn get_mono_mass(&self) -> &f64 {
-        return &self.mono_mass;
+        &self.mono_mass
     }
 
     /// Returns the average mass of the element.
     ///
     pub fn get_average_mass(&self) -> &f64 {
-        return &self.average_mass;
+        &self.average_mass
     }
 }
 
@@ -42,7 +42,7 @@ mod test {
     // local imports
     use super::*;
 
-    const ELEMENTS_FILE: &'static str = "data/elements.csv";
+    const ELEMENTS_FILE: &str = "data/elements.csv";
 
     #[test]
     fn test_completeness() {

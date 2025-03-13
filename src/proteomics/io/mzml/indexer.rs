@@ -14,31 +14,31 @@ use anyhow::Result;
 use crate::proteomics::io::mzml::index::Index;
 
 /// Start of spectrum list tag
-const SPECTRUM_LIST_START_TAG: &'static [u8] = b"<spectrumList ";
+const SPECTRUM_LIST_START_TAG: &[u8] = b"<spectrumList ";
 
 /// End of spectrum list tag
-const SPECTRUM_LIST_END_TAG: &'static [u8] = b"</spectrumList>";
+const SPECTRUM_LIST_END_TAG: &[u8] = b"</spectrumList>";
 
 /// Start of spectrum tag
-const SPECTRUM_START_TAG: &'static [u8] = b"<spectrum ";
+const SPECTRUM_START_TAG: &[u8] = b"<spectrum ";
 
 /// End of spectrum tag
-const SPECTRUM_END_TAG: &'static [u8] = b"</spectrum>";
+const SPECTRUM_END_TAG: &[u8] = b"</spectrum>";
 
 /// Start of spectrum ID tag
-const SPECTRUM_ID_START: &'static [u8] = b"id=\"";
+const SPECTRUM_ID_START: &[u8] = b"id=\"";
 
 /// Attribute end tag
-const ATTRIBUTE_END: &'static [u8] = b"\"";
+const ATTRIBUTE_END: &[u8] = b"\"";
 
 /// Start of default data processing ref tag
-const DEFAULT_DATA_PROCESSING_REF_ATTRIBUTE: &'static [u8] = b"defaultDataProcessingRef=\"";
+const DEFAULT_DATA_PROCESSING_REF_ATTRIBUTE: &[u8] = b"defaultDataProcessingRef=\"";
 
 /// Tab ASCII value
-const TAB: &'static [u8] = b"\t";
+const TAB: &[u8] = b"\t";
 
 /// Whitespace ASCII value
-const WHITESPACE: &'static [u8] = b" ";
+const WHITESPACE: &[u8] = b" ";
 
 /// Default chunk size to read from file (1MB)
 const DEFAULT_CHUNK_SIZE: usize = 1024 * 1000;
@@ -306,8 +306,7 @@ impl<'a> Indexer<'a> {
                         let search_end = min(self.buffer.len(), SPECTRUM_LIST_END_TAG.len() * 3);
                         if self.buffer[..search_end]
                             .windows(SPECTRUM_LIST_END_TAG.len())
-                            .position(|window| window == SPECTRUM_LIST_END_TAG)
-                            .is_some()
+                            .any(|window| window == SPECTRUM_LIST_END_TAG)
                         {
                             // Do not set is_eof to the value SPECTRUM_LIST_END_TAG search as it might return it to false again after set by read_chunk()
                             self.is_eof = true;
@@ -348,7 +347,7 @@ impl<'a> Indexer<'a> {
     /// * `chunk_size` - Size of the chunks to read from the file.
     pub fn create_index(file_path: &'a Path, chunk_size: Option<usize>) -> Result<Index> {
         let mut indexer = Self::new(file_path, chunk_size);
-        Ok(indexer.create_idx()?)
+        indexer.create_idx()
     }
 }
 
@@ -356,7 +355,7 @@ impl<'a> Indexer<'a> {
 mod test {
     use super::*;
 
-    const EXPECTED_SPECTRA: [(&'static str, (usize, usize)); 11] = [
+    const EXPECTED_SPECTRA: [(&str, (usize, usize)); 11] = [
         (
             "controllerType=0 controllerNumber=1 scan=4051",
             (59212, 67042),
@@ -403,15 +402,15 @@ mod test {
         ),
     ];
 
-    const EXPECTED_DEFAULT_DATA_PROCESSING_REF: &'static str = "pwiz_Reader_Thermo_conversion";
+    const EXPECTED_DEFAULT_DATA_PROCESSING_REF: &str = "pwiz_Reader_Thermo_conversion";
     const EXPECTED_CONTENT_BEFORE_SPECTRA_LIST: usize = 3992;
-    const EXPECTED_INDENTION: &'static str = "  ";
+    const EXPECTED_INDENTION: &str = "  ";
 
     #[test]
     fn test_index_creation() {
         let file_path = Path::new("./test_files/spectra_small.mzML");
 
-        let index = Indexer::create_index(&file_path, None).unwrap();
+        let index = Indexer::create_index(file_path, None).unwrap();
 
         assert_eq!(index.get_file_path(), file_path);
         assert_eq!(

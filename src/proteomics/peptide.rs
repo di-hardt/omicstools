@@ -1,6 +1,6 @@
+use std::fmt::Display;
 // std imports
 use std::str::FromStr;
-use std::string::ToString;
 
 // 3rd party imports
 use anyhow::{bail, Context, Error, Result};
@@ -35,11 +35,11 @@ impl FromStr for Terminus {
     }
 }
 
-impl ToString for Terminus {
-    fn to_string(&self) -> String {
+impl Display for Terminus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::N => "N".to_owned(),
-            Self::C => "C".to_owned(),
+            Self::N => write!(f, "N",),
+            Self::C => write!(f, "C",),
         }
     }
 }
@@ -74,8 +74,7 @@ pub fn calculate_gravy_kd(sequence: &str) -> Result<f64> {
     let hypathicity_sum = sequence
         .chars()
         .map(|code| {
-            Ok(get_hydropathicity_kd(code)
-                .context("Error when calculate GRAVY of peptide sequence")?)
+            get_hydropathicity_kd(code).context("Error when calculate GRAVY of peptide sequence")
         })
         .sum::<Result<f64>>()?;
     Ok(hypathicity_sum / sequence.len() as f64)
