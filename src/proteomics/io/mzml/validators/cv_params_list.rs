@@ -1,7 +1,4 @@
 // std imports
-
-use std::collections::HashSet;
-
 use anyhow::{bail, Result};
 
 // Local imports
@@ -64,7 +61,7 @@ pub trait CvParamsValidator {
         element_tag: &str,
     ) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
-        for accession in self.get_parent_accession_for_must_once().iter() {
+        for accession in self.get_parent_accession_for_must_once_or_many().iter() {
             let children = get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
@@ -128,44 +125,14 @@ pub trait CvParamsValidator {
         Ok(accepted_children)
     }
 
-    /// Returns the child accession of `get_parent_accession_for_zero_or_many`
-    ///
-    fn get_zero_or_many_child_accessions(&self) -> Result<Vec<String>> {
-        Ok(self
-            .get_parent_accession_for_zero_or_many()
-            .iter()
-            .map(|accession| {
-                let children = get_children_of(accession)?;
-                Ok(children)
-            })
-            .collect::<Result<Vec<Vec<String>>>>()?
-            .into_iter()
-            .flatten()
-            .collect())
-    }
-
     /// Validate the given cvParams list
     ///
     fn validate_cv_params(&self, cv_params: &[CvParam], element_tag: &str) -> Result<()> {
         // Check if all rules (one child of, one or many children of, zero or many children of) are satisfied
         // and collect each acceptable child accession
-        #[allow(unused_assignments)]
-        let mut acceptable_children = self.validate_must_once(cv_params, element_tag)?;
-        acceptable_children = self.validate_must_once_or_many(cv_params, element_tag)?;
-        acceptable_children.extend(self.validate_may_once(cv_params, element_tag)?);
-        acceptable_children.extend(self.get_zero_or_many_child_accessions()?);
-        let acceptable_children: HashSet<String> = acceptable_children.into_iter().collect();
-
-        // Check if only acceptable children are present in the cvParams list
-        for cv_param in cv_params.iter() {
-            if !acceptable_children.contains(&cv_param.accession) {
-                bail!(
-                    "The cvParam <{}> is not allowed in the <{}> element",
-                    cv_param.accession,
-                    element_tag
-                );
-            }
-        }
+        self.validate_must_once(cv_params, element_tag)?;
+        self.validate_must_once_or_many(cv_params, element_tag)?;
+        self.validate_may_once(cv_params, element_tag)?;
         Ok(())
     }
 }
