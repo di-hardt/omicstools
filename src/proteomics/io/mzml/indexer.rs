@@ -13,10 +13,10 @@ const SPECTRUM_START_TAG: &[u8] = b"<spectrum ";
 const SPECTRUM_END_TAG: &[u8] = b"</spectrum>";
 
 /// Start of spectrum tag
-const CHROMATOGRAM_START_TAG: &'static [u8] = b"<chromatogram ";
+const CHROMATOGRAM_START_TAG: &[u8] = b"<chromatogram ";
 
 /// End of spectrum tag
-const CHROMATOGRAM_END_TAG: &'static [u8] = b"</chromatogram>";
+const CHROMATOGRAM_END_TAG: &[u8] = b"</chromatogram>";
 
 /// Start of spectrum ID tag
 const SPECTRUM_ID_START: &[u8] = b"id=\"";
@@ -81,7 +81,7 @@ where
             }
             search_offset = self.content.len() - search_for.len();
             self.read_chunk()?;
-            if self.content.len() == 0 {
+            if self.content.is_empty() {
                 bail!("Closing tag not found.");
             }
         }

@@ -48,7 +48,7 @@ pub fn get_children_of(accession: &str) -> Result<Vec<String>> {
                 Ok(psi_ms) => psi_ms,
                 Err(e) => return Err(anyhow::anyhow!("Error loading PSI-MS ontology: {}", e)),
             };
-            let children = collect_children_associations(&psi_ms, accession)?;
+            let children = collect_children_associations(psi_ms, accession)?;
             Ok(children)
         }
         _ => Err(anyhow::anyhow!(
@@ -73,7 +73,7 @@ fn collect_children_associations(
     let children = ontology
         .graphs
         .iter()
-        .map(|g| {
+        .flat_map(|g| {
             g.edges
                 .iter()
                 .filter(|e| e.obj.ends_with(&url_accession) && e.pred.ends_with("is_a"))
@@ -85,7 +85,6 @@ fn collect_children_associations(
                     )),
                 })
         })
-        .flatten()
         .collect::<Result<Vec<String>>>()?;
     Ok(children)
 }
