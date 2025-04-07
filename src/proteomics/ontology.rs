@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{collections::HashSet, sync::OnceLock};
 
 use anyhow::{Context, Result};
 use fastobo_graphs::IntoGraph;
@@ -70,7 +70,7 @@ fn collect_children_associations(
     accession: &str,
 ) -> Result<Vec<String>> {
     let url_accession = accession.replace(":", "_");
-    let children = ontology
+    let mut children: Vec<String> = ontology
         .graphs
         .iter()
         .flat_map(|g| {
@@ -78,14 +78,25 @@ fn collect_children_associations(
                 .iter()
                 .filter(|e| e.obj.ends_with(&url_accession) && e.pred.ends_with("is_a"))
                 .map(|e| match e.sub.split("/").last() {
-                    Some(child) => Ok(child.replace("_", ":")),
+                    Some(child) => {
+                        let new_child = child.replace("_", ":");
+                        let mut next_level_children = get_children_of(&new_child)?;
+                        next_level_children.push(new_child);
+                        Ok(next_level_children)
+                    }
                     None => Err(anyhow::anyhow!(
                         "Error parsing child accession from `{:?}`",
                         e
                     )),
                 })
         })
-        .collect::<Result<Vec<String>>>()?;
+        .collect::<Result<Vec<Vec<String>>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<String>>();
+
+    let unique_childrens: HashSet<String> = children.drain(..).collect();
+    children.extend(unique_childrens);
     Ok(children)
 }
 
@@ -97,21 +108,29 @@ mod tests {
     /// The expected children of the term with the accession `MS:1000044`.
     /// ToDo: check for something more reliable
     ///
-    const EXPECTED_CHILDREN_FOR_PSI_MS_TEST: [&str; 14] = [
+    const EXPECTED_CHILDREN_FOR_PSI_MS_TEST: [&str; 22] = [
         "MS:1000133",
         "MS:1000134",
         "MS:1000135",
         "MS:1000136",
         "MS:1000242",
         "MS:1000250",
+        "MS:1000262",
         "MS:1000282",
+        "MS:1000422",
         "MS:1000433",
         "MS:1000435",
         "MS:1000598",
         "MS:1000599",
         "MS:1001880",
         "MS:1002000",
+        "MS:1002472",
+        "MS:1002481",
+        "MS:1002678",
+        "MS:1002679",
+        "MS:1003246",
         "MS:1003247",
+        "MS:1003294",
     ];
 
     #[test]
