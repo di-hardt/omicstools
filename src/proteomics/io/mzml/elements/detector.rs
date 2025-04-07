@@ -25,7 +25,7 @@ impl IsElement for Detector {
 build_cv_params_validator! {
     Detector,
     [
-        "MS:1000026 ", // detector type
+        "MS:1000026", // detector type
     ],
     [],
     [],
