@@ -21,6 +21,7 @@ pub mod index_list_offset;
 pub mod indexed_mz_ml;
 pub mod instrument_configuration;
 pub mod instrument_configuration_list;
+pub mod is_element;
 pub mod isolation_window;
 pub mod mz_ml;
 pub mod offset;

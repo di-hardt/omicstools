@@ -1,8 +1,7 @@
-// 3rd party imports
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::spectrum::Spectrum;
+use super::{is_element::IsElement, spectrum::Spectrum};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SpectrumList {
@@ -12,4 +11,16 @@ pub struct SpectrumList {
     pub default_data_processing_ref: String,
     #[serde(default, rename = "spectrum")]
     pub spectra: Vec<Spectrum>,
+}
+
+impl IsElement for SpectrumList {
+    fn validate(&self) -> Result<()> {
+        if self.count != self.spectra.len() {
+            bail!("SpectrumList count does not match the number of spectra");
+        }
+        for spectrum in &self.spectra {
+            spectrum.validate()?;
+        }
+        Ok(())
+    }
 }

@@ -1,8 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::chromatogram::Chromatogram;
+use super::{chromatogram::Chromatogram, is_element::IsElement};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChromatogramList {
@@ -12,4 +11,13 @@ pub struct ChromatogramList {
     pub default_data_processing_ref: String,
     #[serde(default, rename = "chromatogram")]
     pub chromatograms: Vec<Chromatogram>,
+}
+
+impl IsElement for ChromatogramList {
+    fn validate(&self) -> Result<()> {
+        for chromatogram in &self.chromatograms {
+            chromatogram.validate()?;
+        }
+        Ok(())
+    }
 }

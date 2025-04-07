@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::cv_param::CvParam;
+use super::{cv_param::CvParam, is_element::IsElement};
 use crate::build_cv_params_validator;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -16,8 +16,11 @@ pub struct SourceFile {
     pub cv_params: Vec<CvParam>,
 }
 
-impl SourceFile {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for SourceFile {
+    fn validate(&self) -> Result<()> {
+        for cv_param in &self.cv_params {
+            cv_param.validate()?;
+        }
         self.validate_cv_params(&self.cv_params, "sourceFile")?;
         Ok(())
     }
@@ -32,5 +35,6 @@ build_cv_params_validator!(
     [
         "MS:1000561" // data file checksum type
     ],
+    [],
     []
 );

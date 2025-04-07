@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::precursor::Precursor;
+use super::{is_element::IsElement, precursor::Precursor};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrecursorList {
@@ -11,8 +11,11 @@ pub struct PrecursorList {
     pub precursors: Vec<Precursor>,
 }
 
-impl PrecursorList {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for PrecursorList {
+    fn validate(&self) -> Result<()> {
+        if self.count != self.precursors.len() {
+            bail!("PrecursorList count does not match the number of precursors");
+        }
         for precursor in &self.precursors {
             precursor.validate()?;
         }

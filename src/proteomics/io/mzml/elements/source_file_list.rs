@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::source_file::SourceFile;
+use super::{is_element::IsElement, source_file::SourceFile};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SourceFileList {
@@ -11,8 +11,8 @@ pub struct SourceFileList {
     pub source_files: Vec<SourceFile>,
 }
 
-impl SourceFileList {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for SourceFileList {
+    fn validate(&self) -> Result<()> {
         if self.count != self.source_files.len() {
             bail!(
                 "The count attribute ({}) does not match the number of sourceFile elements ({})",

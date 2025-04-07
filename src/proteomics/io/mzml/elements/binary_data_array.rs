@@ -6,8 +6,8 @@ use flate2::read::ZlibDecoder;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    binary::Binary, cv_param::CvParam, referenceable_param_group_ref::ReferenceableParamGroupRef,
-    user_param::UserParam,
+    binary::Binary, cv_param::CvParam, is_element::IsElement,
+    referenceable_param_group_ref::ReferenceableParamGroupRef, user_param::UserParam,
 };
 use crate::build_cv_params_validator;
 
@@ -27,16 +27,6 @@ pub struct BinaryDataArray {
     pub user_params: Vec<UserParam>,
     #[serde(rename = "binary")]
     pub binary: Binary,
-}
-
-impl BinaryDataArray {
-    pub fn validate(&self) -> Result<()> {
-        if self.binary.data.len() != self.encoded_length {
-            bail!("Encoded length does not match data length");
-        }
-        self.validate_cv_params(&self.cv_params, "binaryDataArray")?;
-        Ok(())
-    }
 }
 
 impl BinaryDataArray {
@@ -97,13 +87,24 @@ impl BinaryDataArray {
     }
 }
 
+impl IsElement for BinaryDataArray {
+    fn validate(&self) -> Result<()> {
+        if self.binary.data.len() != self.encoded_length {
+            bail!("Encoded length does not match data length");
+        }
+        self.validate_cv_params(&self.cv_params, "binaryDataArray")?;
+        Ok(())
+    }
+}
+
 build_cv_params_validator! {
     BinaryDataArray,
     [
-        "MS:1000572", // compression type
-        "MS:1000513", // data array
-        "MS:1000518", // data type
+        "MS:1000572", // binary data compression type
+        "MS:1000513", // binary data array
+        "MS:1000518", // binary data type
     ],
+    [],
     [],
     []
 }

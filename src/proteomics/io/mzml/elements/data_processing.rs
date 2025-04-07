@@ -1,8 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::processing_method::ProcessingMethod;
+use super::{is_element::IsElement, processing_method::ProcessingMethod};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataProcessing {
@@ -10,4 +9,13 @@ pub struct DataProcessing {
     pub id: String,
     #[serde(default, rename = "processingMethod")]
     pub processing_methods: Vec<ProcessingMethod>,
+}
+
+impl IsElement for DataProcessing {
+    fn validate(&self) -> Result<()> {
+        for processing_method in &self.processing_methods {
+            processing_method.validate()?;
+        }
+        Ok(())
+    }
 }

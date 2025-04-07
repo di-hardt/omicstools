@@ -1,5 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+use super::is_element::IsElement;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Cv {
@@ -11,4 +13,10 @@ pub struct Cv {
     pub version: String,
     #[serde(rename = "@URI")]
     pub uri: String,
+}
+
+impl IsElement for Cv {
+    fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 }

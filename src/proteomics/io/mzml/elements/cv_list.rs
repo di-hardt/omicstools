@@ -1,8 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::cv::Cv;
+use super::{cv::Cv, is_element::IsElement};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CvList {
@@ -10,4 +9,13 @@ pub struct CvList {
     pub count: isize,
     #[serde(rename = "cv")]
     pub cv: Vec<Cv>,
+}
+
+impl IsElement for CvList {
+    fn validate(&self) -> Result<()> {
+        for cv in &self.cv {
+            cv.validate()?;
+        }
+        Ok(())
+    }
 }

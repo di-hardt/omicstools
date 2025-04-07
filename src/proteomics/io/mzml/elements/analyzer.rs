@@ -29,11 +29,11 @@ impl Analyzer {
 build_cv_params_validator! {
     Analyzer,
     [
-        "MS:1000480", // mass analyzer attribute
-    ],
-    [
         "MS:1000443", // mass analyzer type
     ],
+    [],
+    [],
     [
+        "MS:1000480", // mass analyzer attribute
     ]
 }

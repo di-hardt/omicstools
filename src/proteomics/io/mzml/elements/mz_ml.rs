@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     cv_list::CvList, data_processing_list::DataProcessingList, file_description::FileDescription,
-    instrument_configuration_list::InstrumentConfigurationList,
+    instrument_configuration_list::InstrumentConfigurationList, is_element::IsElement,
     referenceable_param_group_list::ReferenceableParamGroupList, software_list::SoftwareList,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MzML<R>
 where
-    R: 'static,
+    R: IsElement,
 {
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
@@ -41,12 +41,20 @@ where
     pub run: R,
 }
 
-impl<R> MzML<R>
+impl<R> IsElement for MzML<R>
 where
-    R: 'static,
+    R: IsElement,
 {
-    pub fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
+        for cv_list in &self.cv_list.cv {
+            cv_list.validate()?;
+        }
         self.file_description.validate()?;
+        self.referenceable_param_group_list.validate()?;
+        self.software_list.validate()?;
+        self.instrument_configuration_list.validate()?;
+        self.data_processing_list.validate()?;
+        self.run.validate()?;
         Ok(())
     }
 }

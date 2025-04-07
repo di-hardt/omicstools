@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     file_checksum::FileChecksum, index_list::IndexList, index_list_offset::IndexListOffset,
-    mz_ml::MzML,
+    is_element::IsElement, mz_ml::MzML,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndexedMzML<R>
 where
-    R: 'static,
+    R: IsElement,
 {
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
@@ -30,12 +30,15 @@ where
     pub file_checksum: FileChecksum,
 }
 
-impl<R> IndexedMzML<R>
+impl<R> IsElement for IndexedMzML<R>
 where
-    R: 'static,
+    R: IsElement,
 {
-    pub fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         self.mz_ml.validate()?;
+        self.index_list.validate()?;
+        self.index_list_offset.validate()?;
+        self.file_checksum.validate()?;
         Ok(())
     }
 }

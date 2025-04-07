@@ -1,7 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::{binary_data_array_list::BinaryDataArrayList, cv_param::CvParam};
+use crate::build_cv_params_validator;
+
+use super::{
+    binary_data_array_list::BinaryDataArrayList, cv_param::CvParam, is_element::IsElement,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chromatogram {
@@ -17,11 +21,23 @@ pub struct Chromatogram {
     pub binary_data_array_list: Vec<BinaryDataArrayList>,
 }
 
-impl Chromatogram {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for Chromatogram {
+    fn validate(&self) -> Result<()> {
         for binary_data_array_list in &self.binary_data_array_list {
             binary_data_array_list.validate()?;
         }
         Ok(())
     }
+}
+
+build_cv_params_validator! {
+    Chromatogram,
+    [
+        "MS:1000626", // chromatogram type
+    ],
+    [],
+    [],
+    [
+        "MS:1000808", // chromatogram attribute
+    ]
 }

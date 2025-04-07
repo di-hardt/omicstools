@@ -1,7 +1,7 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
+use super::is_element::IsElement;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Offset {
@@ -9,4 +9,10 @@ pub struct Offset {
     pub id_ref: String,
     #[serde(rename = "$value")]
     pub value: usize,
+}
+
+impl IsElement for Offset {
+    fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 }

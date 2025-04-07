@@ -1,8 +1,6 @@
-// 3rd party imports
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::{analyzer::Analyzer, detector::Detector, source::Source};
+use super::{analyzer::Analyzer, detector::Detector, is_element::IsElement, source::Source};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ComponentList {
@@ -14,4 +12,19 @@ pub struct ComponentList {
     pub analyzers: Vec<Analyzer>,
     #[serde(rename = "detector")]
     pub detectors: Vec<Detector>,
+}
+
+impl IsElement for ComponentList {
+    fn validate(&self) -> anyhow::Result<()> {
+        for source in &self.sources {
+            source.validate()?;
+        }
+        for analyzer in &self.analyzers {
+            analyzer.validate()?;
+        }
+        for detector in &self.detectors {
+            detector.validate()?;
+        }
+        Ok(())
+    }
 }

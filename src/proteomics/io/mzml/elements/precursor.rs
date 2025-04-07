@@ -2,7 +2,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    activation::Activation, isolation_window::IsolationWindow, selected_ion_list::SelectedIonList,
+    activation::Activation, is_element::IsElement, isolation_window::IsolationWindow,
+    selected_ion_list::SelectedIonList,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -17,8 +18,10 @@ pub struct Precursor {
     pub activation: Activation,
 }
 
-impl Precursor {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for Precursor {
+    fn validate(&self) -> Result<()> {
+        self.isolation_window.validate()?;
+        self.selected_ion_list.validate()?;
         self.activation.validate()?;
         Ok(())
     }

@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::binary_data_array::BinaryDataArray;
+use super::{binary_data_array::BinaryDataArray, is_element::IsElement};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BinaryDataArrayList {
@@ -11,8 +11,8 @@ pub struct BinaryDataArrayList {
     pub binary_data_arrays: Vec<BinaryDataArray>,
 }
 
-impl BinaryDataArrayList {
-    pub fn validate(&self) -> Result<()> {
+impl IsElement for BinaryDataArrayList {
+    fn validate(&self) -> Result<()> {
         if self.count < 2 {
             bail!("The count attribute ({}) must be at least 2", self.count);
         }

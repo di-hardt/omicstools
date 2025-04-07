@@ -1,8 +1,9 @@
-// 3rd party imports
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-// Local imports
-use super::{chromatogram_list::ChromatogramList, spectrum_list::SpectrumList};
+use super::{
+    chromatogram_list::ChromatogramList, is_element::IsElement, spectrum_list::SpectrumList,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Run {
@@ -20,6 +21,14 @@ pub struct Run {
     pub chromatogram_list: ChromatogramList,
 }
 
+impl IsElement for Run {
+    fn validate(&self) -> Result<()> {
+        self.spectrum_list.validate()?;
+        self.chromatogram_list.validate()?;
+        Ok(())
+    }
+}
+
 /// Implementation of the MzML element <run> without spectrum and chromatogram data.
 /// This is useful for indexing the MzML file.
 ///
@@ -33,4 +42,10 @@ pub struct IndexedRun {
     pub start_time_stamp: String,
     #[serde(rename = "@defaultSourceFileRef")]
     pub default_source_file_ref: String,
+}
+
+impl IsElement for IndexedRun {
+    fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 }
