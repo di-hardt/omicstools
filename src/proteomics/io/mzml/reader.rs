@@ -172,6 +172,64 @@ where
         Err(anyhow!("Failed to parse mzML"))
     }
 
+    /// Reads the mzML file with pre generated index.
+    /// There is no check if the index is matching the mzML file.
+    ///
+    /// # Arguments
+    /// * `mzml_file` - A mutable reference to a BufRead and Seek object.
+    /// * `index` - The index to use for the mzML file.
+    /// * `buffer_size` - An optional buffer size for reading the mzML file.
+    /// * `validate_mzml` - A boolean flag to validate the mzML file.
+    ///
+    pub fn read_pre_indexed(
+        mzml_file: &mut F,
+        index: Index,
+        buffer_size: Option<usize>,
+        validate_mzml: bool,
+    ) -> Result<File<F>> {
+        mzml_file.seek(SeekFrom::Start(0))?;
+
+        let mzml_without_data = Reader::get_mzml_without_data(mzml_file, buffer_size)?;
+
+        if mzml_without_data
+            .windows(INDEXED_MZML_START_TAG.len())
+            .any(|window| window == INDEXED_MZML_START_TAG)
+        {
+            let indexed_mzml = quick_xml::de::from_reader::<_, IndexedMzML<IndexedRun>>(
+                mzml_without_data.as_slice(),
+            )
+            .context("Failed to parse indexed mzML")?;
+            if validate_mzml {
+                indexed_mzml.validate()?;
+            }
+
+            return Ok(File {
+                index,
+                reader: mzml_file,
+                mzml_element: MzMlElement::IndexedMzML(indexed_mzml),
+            });
+        }
+
+        if mzml_without_data
+            .windows(MZML_START_TAG.len())
+            .any(|window| window == MZML_START_TAG)
+        {
+            let mzml =
+                quick_xml::de::from_reader::<_, MzML<IndexedRun>>(mzml_without_data.as_slice())
+                    .context("Failed to parse mzML")?;
+            if validate_mzml {
+                mzml.validate()?;
+            }
+            return Ok(File {
+                index,
+                reader: mzml_file,
+                mzml_element: MzMlElement::MzML(mzml),
+            });
+        }
+
+        Err(anyhow!("Failed to parse mzML"))
+    }
+
     /// Returns the mzML file without the the actual spectrum or chromatogram data.
     ///
     /// # Arguments
