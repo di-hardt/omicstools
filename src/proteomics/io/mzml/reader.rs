@@ -5,6 +5,7 @@ use anyhow::{anyhow, Context, Result};
 
 use super::elements::chromatogram::Chromatogram;
 use super::elements::indexed_mz_ml::IndexedMzML;
+use super::elements::is_element::IsElement;
 use super::elements::mz_ml::MzML;
 use super::elements::run::IndexedRun;
 use super::elements::spectrum::Spectrum;
@@ -113,11 +114,13 @@ where
     /// * `create_index` - A boolean flag to create an index for the mzML file.
     /// * `buffer_size` - An optional buffer size for reading the mzML file.
     /// * `reindex` - A boolean flag to reindex an indexed mzML file instead of using the provided index.
+    /// * `validate_mzml` - A boolean flag to validate the mzML file.
     ///
     pub fn read_indexed(
         mzml_file: &mut F,
         buffer_size: Option<usize>,
         force_reindex: bool,
+        validate_mzml: bool,
     ) -> Result<File<F>> {
         mzml_file.seek(SeekFrom::Start(0))?;
 
@@ -131,6 +134,9 @@ where
                 mzml_without_data.as_slice(),
             )
             .context("Failed to parse indexed mzML")?;
+            if validate_mzml {
+                indexed_mzml.validate()?;
+            }
 
             let index = if force_reindex {
                 Indexer::create_index(mzml_file, buffer_size)?
@@ -152,6 +158,9 @@ where
             let mzml =
                 quick_xml::de::from_reader::<_, MzML<IndexedRun>>(mzml_without_data.as_slice())
                     .context("Failed to parse mzML")?;
+            if validate_mzml {
+                mzml.validate()?;
+            }
             let index = Indexer::create_index(mzml_file, buffer_size)?;
             return Ok(File {
                 index,
@@ -291,9 +300,63 @@ where
 
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     #[test]
-    fn test_reader_new() {}
+    fn test_get_mzml_without_data() {
+        let raw_file = std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        let expected_string =
+            std::fs::read_to_string("test_files/spectra_small.unindexed.no_data.mzML").unwrap();
+
+        let mzml_without_data = Reader::get_mzml_without_data(&mut raw_reader, None).unwrap();
+        let mzml_without_data_string = String::from_utf8(mzml_without_data).unwrap();
+        assert_eq!(mzml_without_data_string, expected_string);
+    }
+
+    #[test]
+    fn test_get_indexed_mzml_without_data() {
+        let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        let expected_string =
+            std::fs::read_to_string("test_files/spectra_small.no_data.mzML").unwrap();
+
+        let mzml_without_data = Reader::get_mzml_without_data(&mut raw_reader, None).unwrap();
+        let mzml_without_data_string = String::from_utf8(mzml_without_data).unwrap();
+        assert_eq!(mzml_without_data_string, expected_string);
+    }
+
+    #[test]
+    fn test_reader_mzml() {
+        let raw_file = std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        let file = Reader::read_indexed(&mut raw_reader, None, false, true).unwrap();
+        assert_eq!(file.index.get_spectra().len(), 11);
+        assert_eq!(file.index.get_chromatograms().len(), 1);
+        assert!(matches!(file.mzml_element, MzMlElement::MzML(_)));
+    }
+
+    #[test]
+    fn test_reader_indexed_mzml() {
+        let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        let file = Reader::read_indexed(&mut raw_reader, None, false, true).unwrap();
+        assert_eq!(file.index.get_spectra().len(), 11);
+        assert_eq!(file.index.get_chromatograms().len(), 1);
+        assert!(matches!(file.mzml_element, MzMlElement::IndexedMzML(_)));
+    }
+
+    #[test]
+    fn test_reader_indexed_mzml_reindex() {
+        let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        let file = Reader::read_indexed(&mut raw_reader, None, true, true).unwrap();
+        assert_eq!(file.index.get_spectra().len(), 11);
+        assert_eq!(file.index.get_chromatograms().len(), 1);
+        assert!(matches!(file.mzml_element, MzMlElement::IndexedMzML(_)));
+    }
+
+    #[test]
+    #[ignore]
+    fn test_reader_indexed_mzml_with_existing_index() {}
 }
