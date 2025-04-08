@@ -415,6 +415,28 @@ mod test {
     }
 
     #[test]
-    #[ignore]
-    fn test_reader_indexed_mzml_with_existing_index() {}
+    fn test_reader_indexed_mzml_with_existing_index() {
+        // create buffered reader
+        let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
+        let mut raw_reader = std::io::BufReader::new(raw_file);
+        // create index
+        let index = Indexer::create_index(&mut raw_reader, None).unwrap();
+        // read mzml with pre generated index
+        let mut file = Reader::read_pre_indexed(&mut raw_reader, index, None, true).unwrap();
+        // get spectrum and check some attributes
+        let spectrum = file
+            .get_spectrum("controllerType=0 controllerNumber=1 scan=3865")
+            .unwrap();
+        assert_eq!(spectrum.id, "controllerType=0 controllerNumber=1 scan=3865");
+        assert_eq!(spectrum.index, 3);
+        let precursor_ion = &spectrum.precursor_list.unwrap().precursors[0]
+            .selected_ion_list
+            .selected_ions[0];
+        let mass_to_charge = precursor_ion
+            .cv_params
+            .iter()
+            .find(|cv_param| cv_param.accession == "MS:1000744")
+            .unwrap();
+        assert_eq!(mass_to_charge.value, "447.346893310547");
+    }
 }
