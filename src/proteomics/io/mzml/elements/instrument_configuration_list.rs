@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{instrument_configuration::InstrumentConfiguration, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InstrumentConfigurationList {
     #[serde(rename = "@count")]
     pub count: usize,

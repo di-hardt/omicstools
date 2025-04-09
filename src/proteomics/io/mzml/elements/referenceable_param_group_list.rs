@@ -5,7 +5,7 @@ use super::{is_element::IsElement, referenceable_param_group::ReferenceableParam
 
 // Local imports
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ReferenceableParamGroupList {
     #[serde(rename = "@count")]
     pub count: usize,

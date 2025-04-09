@@ -6,7 +6,7 @@ use crate::build_cv_params_validator;
 // Local imports
 use super::{cv_param::CvParam, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IsolationWindow {
     #[serde(default, rename = "cvParam")]
     pub cv_params: Vec<CvParam>,

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{chromatogram::Chromatogram, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ChromatogramList {
     #[serde(rename = "@count")]
     pub count: usize,

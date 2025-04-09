@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{is_element::IsElement, processing_method::ProcessingMethod};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DataProcessing {
     #[serde(rename = "@id")]
     pub id: String,

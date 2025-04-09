@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{data_processing::DataProcessing, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DataProcessingList {
     #[serde(rename = "@count")]
     pub count: usize,

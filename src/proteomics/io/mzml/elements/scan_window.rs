@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::{cv_param::CvParam, is_element::IsElement};
 use crate::build_cv_params_validator;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScanWindow {
     #[serde(default, rename = "cvParam")]
     pub cv_params: Vec<CvParam>,

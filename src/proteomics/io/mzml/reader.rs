@@ -1,13 +1,17 @@
+use core::fmt::Write;
 use std::io::{BufRead, Seek, SeekFrom};
 use std::ops::Deref;
+use std::vec;
 
 use anyhow::{anyhow, Context, Result};
+use serde::Serialize;
+use sha1::{Digest, Sha1};
 
 use super::elements::chromatogram::Chromatogram;
 use super::elements::indexed_mz_ml::IndexedMzML;
 use super::elements::is_element::IsElement;
 use super::elements::mz_ml::MzML;
-use super::elements::run::IndexedRun;
+use super::elements::run::{IndexedRun, Run};
 use super::elements::spectrum::Spectrum;
 use super::index::Index;
 use super::indexer::Indexer;
@@ -32,6 +36,27 @@ const OPENING_SPECTRUM_LIST_TAG: &[u8; 13] = b"<spectrumList";
 ///
 const CLOSING_RUN_TAG_REV: &[u8; 6] = b">nur/<";
 
+/// Opening filechecksum tag
+///
+const OPENING_FILECHECKSUM_TAG: &[u8; 14] = b"<fileChecksum>";
+
+/// Closing filechecksum tag
+///
+const CLOSING_FILECHECKSUM_TAG: &[u8; 15] = b"</fileChecksum>";
+
+/// Opening indexList tag
+///
+const OPENING_INDEX_LIST_TAG: &[u8; 10] = b"<indexList";
+
+/// Opening indexListOffset tag
+///
+const OPENING_INDEX_LIST_OFFSET_TAG: &[u8; 17] = b"<indexListOffset>";
+
+/// Closing indexListOffset tag
+///
+const CLOSING_INDEX_LIST_OFFSET_TAG: &[u8; 18] = b"</indexListOffset>";
+
+#[derive(Clone)]
 pub enum MzMlElement {
     MzML(MzML<IndexedRun>),
     IndexedMzML(IndexedMzML<IndexedRun>),
@@ -57,7 +82,7 @@ where
 {
     /// Returns a spectrum by ID
     ///
-    pub fn get_spectrum(&'a mut self, spectrum_id: &str) -> Result<Spectrum> {
+    pub fn get_spectrum(&mut self, spectrum_id: &str) -> Result<Spectrum> {
         let offset = match self.index.get_spectra().get(spectrum_id) {
             Some(offset) => offset,
             None => return Err(anyhow::anyhow!("Spectrum not found")),
@@ -70,7 +95,7 @@ where
 
     /// Returns a chromatogram by ID
     ///
-    pub fn get_chromatogram(&'a mut self, chromatogram_id: &str) -> Result<Chromatogram> {
+    pub fn get_chromatogram(&mut self, chromatogram_id: &str) -> Result<Chromatogram> {
         let offset = match self.index.get_chromatograms().get(chromatogram_id) {
             Some(offset) => offset,
             None => return Err(anyhow::anyhow!("Chromatogram not found")),
@@ -79,6 +104,158 @@ where
         self.reader.seek(SeekFrom::Start(*offset as u64))?;
         quick_xml::de::from_reader::<_, Chromatogram>(&mut self.reader)
             .context("Failed to parse chromatogram")
+    }
+
+    /// Returns a valid mzML with the given spectrum.
+    ///
+    pub fn extract_spectrum(
+        &'a mut self,
+        spectrum_id: &str,
+        include_parents: bool,
+    ) -> Result<String> {
+        let mut spectra: Vec<Spectrum> = Vec::with_capacity(2); // expect ms level 2 maybe 3
+        let mut next_spec_ids = vec![spectrum_id.to_string()];
+        while let Some(spectrum_id) = next_spec_ids.pop() {
+            let spectrum = self.get_spectrum(&spectrum_id)?;
+
+            if include_parents {
+                if let Some(precursor_list) = &spectrum.precursor_list {
+                    for precursor in precursor_list.precursors.iter() {
+                        next_spec_ids.push(precursor.spectrum_ref.clone())
+                    }
+                }
+            }
+            spectra.push(spectrum);
+        }
+        spectra.sort_by(|x, y| x.index.cmp(&y.index));
+        let mzml = self.mzml_element.clone();
+
+        match mzml {
+            MzMlElement::MzML(mzml) => self.extract_spectrum_from_mzml(mzml, spectra),
+            MzMlElement::IndexedMzML(indexed_mzml) => {
+                self.extract_spectrum_from_indexed_mzml(indexed_mzml, spectra)
+            }
+        }
+    }
+
+    fn extract_spectrum_from_mzml(
+        &mut self,
+        mzml_element: MzML<IndexedRun>,
+        spectra: Vec<Spectrum>,
+    ) -> Result<String> {
+        let mut mzml_element: MzML<Run> = mzml_element.into();
+        let mut xml = String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+        let mut ser = quick_xml::se::Serializer::with_root(&mut xml, Some("mzML"))?;
+        ser.indent(' ', 2);
+        mzml_element.run.spectrum_list.count = spectra.len();
+        mzml_element.run.spectrum_list.spectra = spectra;
+        mzml_element.serialize(ser)?;
+        Ok(xml)
+    }
+
+    fn extract_spectrum_from_indexed_mzml(
+        &mut self,
+        indexed_mzml_element: IndexedMzML<IndexedRun>,
+        spectra: Vec<Spectrum>,
+    ) -> Result<String> {
+        // prepare serialization
+        let mut indexed_mzml_element: IndexedMzML<Run> = indexed_mzml_element.into();
+        indexed_mzml_element.mz_ml.run.spectrum_list.count = spectra.len();
+        indexed_mzml_element.mz_ml.run.spectrum_list.spectra = spectra;
+
+        // serialize
+        let mut xml = String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+        let mut ser = quick_xml::se::Serializer::with_root(&mut xml, Some("indexedmzML"))?;
+        ser.indent(' ', 2);
+        indexed_mzml_element.serialize(ser)?;
+
+        // index the spectra
+        let mut cursor = std::io::Cursor::new(&xml);
+        let index = Indexer::create_index(&mut cursor, None)?;
+        indexed_mzml_element.index_list = index.into();
+
+        // serialize again with new index
+        xml.clear();
+        xml.push_str("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+        let mut ser = quick_xml::se::Serializer::with_root(&mut xml, Some("indexedmzML"))?;
+        ser.indent(' ', 2);
+        indexed_mzml_element.serialize(ser)?;
+
+        // Set correct indexListOffset
+        let index_list_offset = xml
+            .find(String::from_utf8_lossy(OPENING_INDEX_LIST_TAG).as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "Failed to find `{}` tag",
+                    String::from_utf8_lossy(OPENING_INDEX_LIST_OFFSET_TAG)
+                )
+            })?;
+
+        let index_list_offset_start_position = xml
+            .find(String::from_utf8_lossy(OPENING_INDEX_LIST_OFFSET_TAG).as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "Failed to find `{}` tag",
+                    String::from_utf8_lossy(OPENING_INDEX_LIST_OFFSET_TAG)
+                )
+            })?
+            + OPENING_INDEX_LIST_OFFSET_TAG.len();
+
+        let index_list_offset_end_position = xml[index_list_offset_start_position..]
+            .find(String::from_utf8_lossy(CLOSING_INDEX_LIST_OFFSET_TAG).as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "Failed to find `{}` tag",
+                    String::from_utf8_lossy(CLOSING_INDEX_LIST_OFFSET_TAG)
+                )
+            })?
+            + index_list_offset_start_position;
+
+        xml = format!(
+            "{}{}{}",
+            &xml[..index_list_offset_start_position],
+            index_list_offset,
+            &xml[index_list_offset_end_position..]
+        );
+
+        // Calculate new filechecksum and replace it in the xml
+        let filechecksum_start_position = xml
+            .find(String::from_utf8_lossy(OPENING_FILECHECKSUM_TAG).as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "Failed to find `{}` tag",
+                    String::from_utf8_lossy(OPENING_FILECHECKSUM_TAG)
+                )
+            })?
+            + OPENING_FILECHECKSUM_TAG.len();
+
+        let filechecksum_end_position = xml[filechecksum_start_position..]
+            .find(String::from_utf8_lossy(CLOSING_FILECHECKSUM_TAG).as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "Failed to find `{}` tag",
+                    String::from_utf8_lossy(CLOSING_FILECHECKSUM_TAG)
+                )
+            })?
+            + filechecksum_start_position;
+
+        let mut hasher = Sha1::new();
+        hasher.update(&xml[..filechecksum_start_position]);
+
+        let hash_result = hasher.finalize();
+
+        // hex conversion
+        let mut hex_hash = String::with_capacity(2 * hash_result.len());
+        for byte in hash_result {
+            write!(hex_hash, "{:02x}", byte)?;
+        }
+
+        Ok(format!(
+            "{}{}{}",
+            &xml[..filechecksum_start_position],
+            hex_hash,
+            &xml[filechecksum_end_position..]
+        ))
     }
 }
 
@@ -360,6 +537,22 @@ where
 mod test {
     use super::*;
 
+    /// Reused test spectrums
+    ///
+    fn test_spectrum_3865(spectrum: Spectrum) {
+        assert_eq!(spectrum.id, "controllerType=0 controllerNumber=1 scan=3865");
+        assert_eq!(spectrum.index, 3);
+        let precursor_ion = &spectrum.precursor_list.unwrap().precursors[0]
+            .selected_ion_list
+            .selected_ions[0];
+        let mass_to_charge = precursor_ion
+            .cv_params
+            .iter()
+            .find(|cv_param| cv_param.accession == "MS:1000744")
+            .unwrap();
+        assert_eq!(mass_to_charge.value, "447.346893310547");
+    }
+
     #[test]
     fn test_get_mzml_without_data() {
         let raw_file = std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap();
@@ -427,16 +620,51 @@ mod test {
         let spectrum = file
             .get_spectrum("controllerType=0 controllerNumber=1 scan=3865")
             .unwrap();
-        assert_eq!(spectrum.id, "controllerType=0 controllerNumber=1 scan=3865");
-        assert_eq!(spectrum.index, 3);
-        let precursor_ion = &spectrum.precursor_list.unwrap().precursors[0]
-            .selected_ion_list
-            .selected_ions[0];
-        let mass_to_charge = precursor_ion
-            .cv_params
-            .iter()
-            .find(|cv_param| cv_param.accession == "MS:1000744")
+        test_spectrum_3865(spectrum);
+    }
+
+    #[test]
+    fn test_spectrum_separation_from_mzml() {
+        // Read file
+        let mut inner_reader = std::io::BufReader::new(
+            std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap(),
+        );
+        let mut mzml_file = Reader::read_indexed(&mut inner_reader, None, false, true).unwrap();
+        // Extract spectrum
+        let xml = mzml_file
+            .extract_spectrum("controllerType=0 controllerNumber=1 scan=3865", false)
             .unwrap();
-        assert_eq!(mass_to_charge.value, "447.346893310547");
+        std::fs::write("./tmp.mzML", &xml).unwrap();
+        // Read extracted file, no reindexing but validation
+        let mut extracted_inner_reader = std::io::Cursor::new(xml);
+        let mut extracted_mzml_file =
+            Reader::read_indexed(&mut extracted_inner_reader, None, false, true).unwrap();
+        // Get spectrum and check some attributes
+        let spectrum = extracted_mzml_file
+            .get_spectrum("controllerType=0 controllerNumber=1 scan=3865")
+            .unwrap();
+        test_spectrum_3865(spectrum);
+    }
+
+    #[test]
+    fn test_spectrum_separation_from_indexedmzml() {
+        // Read file
+        let mut inner_reader =
+            std::io::BufReader::new(std::fs::File::open("test_files/spectra_small.mzML").unwrap());
+        let mut mzml_file = Reader::read_indexed(&mut inner_reader, None, false, true).unwrap();
+        // Extract spectrum
+        let xml = mzml_file
+            .extract_spectrum("controllerType=0 controllerNumber=1 scan=3865", false)
+            .unwrap();
+        std::fs::write("./tmp.indexed.mzML", &xml).unwrap();
+        // Read extracted file, no reindexing but validation
+        let mut extracted_inner_reader = std::io::Cursor::new(xml);
+        let mut extracted_mzml_file =
+            Reader::read_indexed(&mut extracted_inner_reader, None, false, true).unwrap();
+        // Get spectrum and check some attributes
+        let spectrum = extracted_mzml_file
+            .get_spectrum("controllerType=0 controllerNumber=1 scan=3865")
+            .unwrap();
+        test_spectrum_3865(spectrum);
     }
 }

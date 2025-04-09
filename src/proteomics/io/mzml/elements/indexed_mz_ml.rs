@@ -2,14 +2,18 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    file_checksum::FileChecksum, index_list::IndexList, index_list_offset::IndexListOffset,
-    is_element::IsElement, mz_ml::MzML,
+    file_checksum::FileChecksum,
+    index_list::IndexList,
+    index_list_offset::IndexListOffset,
+    is_element::IsElement,
+    mz_ml::MzML,
+    run::{IndexedRun, IsRun, Run},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IndexedMzML<R>
 where
-    R: IsElement,
+    R: IsRun,
 {
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
@@ -32,7 +36,7 @@ where
 
 impl<R> IsElement for IndexedMzML<R>
 where
-    R: IsElement,
+    R: IsRun,
 {
     fn validate(&self) -> Result<()> {
         self.mz_ml.validate()?;
@@ -40,5 +44,19 @@ where
         self.index_list_offset.validate()?;
         self.file_checksum.validate()?;
         Ok(())
+    }
+}
+
+impl From<IndexedMzML<IndexedRun>> for IndexedMzML<Run> {
+    fn from(indexed_mz_ml: IndexedMzML<IndexedRun>) -> Self {
+        Self {
+            xmlns: indexed_mz_ml.xmlns,
+            xmlns_xsi: indexed_mz_ml.xmlns_xsi,
+            xsi_schema_location: indexed_mz_ml.xsi_schema_location,
+            mz_ml: MzML::from(indexed_mz_ml.mz_ml),
+            index_list: indexed_mz_ml.index_list,
+            index_list_offset: indexed_mz_ml.index_list_offset,
+            file_checksum: indexed_mz_ml.file_checksum,
+        }
     }
 }

@@ -3,6 +3,8 @@ use std::{collections::HashSet, sync::OnceLock};
 use anyhow::{Context, Result};
 use fastobo_graphs::IntoGraph;
 
+const ONTOLOGY_FOLDER: &str = ".life_science_ontologies";
+
 /// The URL of the PSI-MS ontology.
 ///
 const PSI_MS_URL: &str =
@@ -18,6 +20,39 @@ lazy_static! {
 ///
 pub fn get_psi_ms() -> &'static Result<fastobo_graphs::model::GraphDocument> {
     PSI_MS.get_or_init(|| {
+        // Check if the home directory is available, if so set cache path
+        #[allow(deprecated)] // deprecation flag is supposed to be removed in 1.86 for home_dir
+        let cache_path = match std::env::home_dir() {
+            Some(path) => {
+                if path.is_dir() {
+                    Some(path.join(ONTOLOGY_FOLDER))
+                } else {
+                    None
+                }
+            }
+            None => None,
+        };
+
+        // Check if the cache path is set and create it if it doesn't exist
+        if let Some(cache_path) = cache_path {
+            if !cache_path.is_dir() {
+                std::fs::create_dir_all(&cache_path)
+                    .context("Error creating ontology cache directory")?;
+            }
+
+            let ontology_path = cache_path.join("psi-ms.obo");
+            if !ontology_path.is_file() {
+                println!("Downloading PSI-MS ontology to {}", ontology_path.display());
+                let response =
+                    reqwest::blocking::get(PSI_MS_URL).context("Error fetching PSI-MS ontology")?;
+                std::fs::write(&ontology_path, response.bytes()?)
+                    .context("Error writing PSI-MS ontology to file")?;
+            }
+            println!("Reading PSI-MS ontology from {}", ontology_path.display());
+            let doc = fastobo::from_file(ontology_path).context("Error reading PSI-MS ontology")?;
+            return Ok(doc.into_graph()?);
+        }
+
         let response =
             reqwest::blocking::get(PSI_MS_URL).context("Error fetching PSI-MS ontology")?;
 

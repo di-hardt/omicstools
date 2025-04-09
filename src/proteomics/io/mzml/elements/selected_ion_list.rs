@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{is_element::IsElement, selected_ion::SelectedIon};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SelectedIonList {
     #[serde(rename = "@count")]
     pub count: usize,

@@ -7,7 +7,7 @@ use super::{
     binary_data_array_list::BinaryDataArrayList, cv_param::CvParam, is_element::IsElement,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Chromatogram {
     #[serde(rename = "@index")]
     pub index: usize,

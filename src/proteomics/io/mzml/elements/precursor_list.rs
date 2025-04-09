@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{is_element::IsElement, precursor::Precursor};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PrecursorList {
     #[serde(rename = "@count")]
     pub count: usize,

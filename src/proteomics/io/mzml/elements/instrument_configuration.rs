@@ -6,7 +6,7 @@ use super::{
     referenceable_param_group_ref::ReferenceableParamGroupRef,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InstrumentConfiguration {
     #[serde(rename = "@id")]
     pub id: String,

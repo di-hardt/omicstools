@@ -9,7 +9,7 @@ use super::{
     precursor_list::PrecursorList, scan_list::ScanList,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Spectrum {
     #[serde(rename = "@index")]
     pub index: usize,

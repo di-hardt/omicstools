@@ -7,7 +7,7 @@ use super::{
 };
 use crate::build_cv_params_validator;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 
 pub struct Activation {
     #[serde(default, rename = "cvParam")]

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{is_element::IsElement, source_file::SourceFile};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SourceFileList {
     #[serde(rename = "@count")]
     pub count: usize,

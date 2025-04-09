@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{is_element::IsElement, offset::Offset};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Index {
     #[serde(rename = "@name")]
     pub name: String,

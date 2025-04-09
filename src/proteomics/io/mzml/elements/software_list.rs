@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 // Local imports
 use super::{is_element::IsElement, software::Software};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SoftwareList {
     #[serde(rename = "@count")]
     pub count: usize,

@@ -2,15 +2,20 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    cv_list::CvList, data_processing_list::DataProcessingList, file_description::FileDescription,
-    instrument_configuration_list::InstrumentConfigurationList, is_element::IsElement,
-    referenceable_param_group_list::ReferenceableParamGroupList, software_list::SoftwareList,
+    cv_list::CvList,
+    data_processing_list::DataProcessingList,
+    file_description::FileDescription,
+    instrument_configuration_list::InstrumentConfigurationList,
+    is_element::IsElement,
+    referenceable_param_group_list::ReferenceableParamGroupList,
+    run::{IndexedRun, IsRun, Run},
+    software_list::SoftwareList,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MzML<R>
 where
-    R: IsElement,
+    R: IsRun,
 {
     #[serde(rename = "@xmlns")]
     pub xmlns: String,
@@ -43,7 +48,7 @@ where
 
 impl<R> IsElement for MzML<R>
 where
-    R: IsElement,
+    R: IsRun,
 {
     fn validate(&self) -> Result<()> {
         for cv_list in &self.cv_list.cv {
@@ -56,5 +61,25 @@ where
         self.data_processing_list.validate()?;
         self.run.validate()?;
         Ok(())
+    }
+}
+
+// Needed for separating spectra and chromatograms from an indexed run file
+impl From<MzML<IndexedRun>> for MzML<Run> {
+    fn from(mzml: MzML<IndexedRun>) -> Self {
+        Self {
+            xmlns: mzml.xmlns,
+            xmlns_xsi: mzml.xmlns_xsi,
+            xsi_schema_location: mzml.xsi_schema_location,
+            id: mzml.id,
+            version: mzml.version,
+            cv_list: mzml.cv_list,
+            file_description: mzml.file_description,
+            referenceable_param_group_list: mzml.referenceable_param_group_list,
+            software_list: mzml.software_list,
+            instrument_configuration_list: mzml.instrument_configuration_list,
+            data_processing_list: mzml.data_processing_list,
+            run: Run::from(mzml.run),
+        }
     }
 }

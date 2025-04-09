@@ -5,7 +5,7 @@ use crate::build_cv_params_validator;
 
 use super::{cv_param::CvParam, is_element::IsElement, scan::Scan};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScanList {
     #[serde(rename = "@count")]
     pub count: usize,

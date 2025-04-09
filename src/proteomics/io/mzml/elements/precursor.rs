@@ -6,7 +6,7 @@ use super::{
     selected_ion_list::SelectedIonList,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Precursor {
     #[serde(rename = "@spectrumRef")]
     pub spectrum_ref: String,

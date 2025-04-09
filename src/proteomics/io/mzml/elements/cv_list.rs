@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{cv::Cv, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CvList {
     #[serde(rename = "@count")]
     pub count: isize,

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{file_content::FileContent, is_element::IsElement, source_file_list::SourceFileList};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileDescription {
     #[serde(rename = "fileContent")]
     pub file_content: FileContent,

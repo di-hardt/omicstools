@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{binary_data_array::BinaryDataArray, is_element::IsElement};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BinaryDataArrayList {
     #[serde(rename = "@count")]
     pub count: usize,

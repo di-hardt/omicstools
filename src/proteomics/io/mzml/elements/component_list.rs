@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{analyzer::Analyzer, detector::Detector, is_element::IsElement, source::Source};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ComponentList {
     #[serde(rename = "@count")]
     pub count: usize,
