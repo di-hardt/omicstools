@@ -30,7 +30,7 @@ const OPENING_SPECTRUM_LIST_TAG: &[u8; 13] = b"<spectrumList";
 
 /// Closing run tag in reverse
 ///
-const CLOSING_RUN_TAG: &[u8; 6] = b">nur/<";
+const CLOSING_RUN_TAG_REV: &[u8; 6] = b">nur/<";
 
 pub enum MzMlElement {
     MzML(MzML<IndexedRun>),
@@ -307,8 +307,8 @@ where
             buffer[..read_end].as_mut().reverse();
             end_of_mzml.extend_from_slice(&buffer[..read_end]);
             let run_tag_offset = end_of_mzml[search_offset..]
-                .windows(CLOSING_RUN_TAG.len())
-                .position(|window| window == CLOSING_RUN_TAG);
+                .windows(CLOSING_RUN_TAG_REV.len())
+                .position(|window| window == CLOSING_RUN_TAG_REV);
             // If the tag is not found and there is still content to read, continue
             if run_tag_offset.is_none() && remaining_content > 0 {
                 if remaining_content >= buffer.capacity() {
@@ -320,14 +320,14 @@ where
                     current_buffer_size = remaining_content;
                     buffer.truncate(current_buffer_size);
                 }
-                search_offset = end_of_mzml.len() - CLOSING_RUN_TAG.len();
+                search_offset = end_of_mzml.len() - CLOSING_RUN_TAG_REV.len();
                 last_file_pos = mzml_file.seek(std::io::SeekFrom::Start(
                     last_file_pos - current_buffer_size as u64,
                 ))?;
                 continue;
             }
             let mut truncate_index =
-                search_offset + run_tag_offset.unwrap_or(0) + CLOSING_RUN_TAG.len();
+                search_offset + run_tag_offset.unwrap_or(0) + CLOSING_RUN_TAG_REV.len();
 
             // for proper indention we need top add everything until the next newline
             // which should be within the next 10 bytes or so
