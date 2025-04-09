@@ -21,7 +21,7 @@ pub struct Spectrum {
     pub cv_params: Vec<CvParam>,
     #[serde(rename = "scanList")]
     pub scan_list: ScanList,
-    #[serde(rename = "precursorList")]
+    #[serde(rename = "precursorList", skip_serializing_if = "Option::is_none")]
     pub precursor_list: Option<PrecursorList>,
     #[serde(rename = "binaryDataArrayList")]
     pub binary_data_array_list: BinaryDataArrayList,

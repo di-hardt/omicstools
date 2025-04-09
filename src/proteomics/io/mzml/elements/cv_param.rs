@@ -13,11 +13,11 @@ pub struct CvParam {
     pub name: String,
     #[serde(rename = "@value")]
     pub value: String,
-    #[serde(rename = "@unitCvRef")]
+    #[serde(rename = "@unitCvRef", skip_serializing_if = "Option::is_none")]
     pub unit_cv_ref: Option<String>,
-    #[serde(rename = "@unitAccession")]
+    #[serde(rename = "@unitAccession", skip_serializing_if = "Option::is_none")]
     pub unit_accession: Option<String>,
-    #[serde(rename = "@unitName")]
+    #[serde(rename = "@unitName", skip_serializing_if = "Option::is_none")]
     pub unit_name: Option<String>,
 }
 

@@ -15,9 +15,9 @@ use crate::build_cv_params_validator;
 pub struct BinaryDataArray {
     #[serde(rename = "@encodedLength")]
     pub encoded_length: usize,
-    #[serde(rename = "@arrayLength")]
+    #[serde(rename = "@arrayLength", skip_serializing_if = "Option::is_none")]
     pub array_length: Option<usize>,
-    #[serde(rename = "@dataProcessingRef")]
+    #[serde(rename = "@dataProcessingRef", skip_serializing_if = "Option::is_none")]
     pub data_processing_ref: Option<String>,
     #[serde(default, rename = "referenceableParamGroupRef")]
     pub referenceable_param_group_ref: Vec<ReferenceableParamGroupRef>,
