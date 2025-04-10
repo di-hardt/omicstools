@@ -64,5 +64,7 @@
     </dataProcessing>
   </dataProcessingList>
   <run id="QEXHF09277std" defaultInstrumentConfigurationRef="IC1" startTimeStamp="2019-01-21T06:31:11Z" defaultSourceFileRef="RAW1">
+    <spectrumList count="26897" defaultDataProcessingRef="pwiz_Reader_Thermo_conversion"></spectrumList>
+    <chromatogramList count="1" defaultDataProcessingRef="pwiz_Reader_Thermo_conversion"></chromatogramList>
   </run>
 </mzML>

@@ -1,4 +1,5 @@
 use core::fmt::Write;
+use std::collections::HashMap;
 use std::io::{BufRead, Seek, SeekFrom};
 use std::ops::Deref;
 use std::vec;
@@ -14,27 +15,11 @@ use super::elements::mz_ml::MzML;
 use super::elements::run::{IndexedRun, Run};
 use super::elements::spectrum::Spectrum;
 use super::index::Index;
-use super::indexer::Indexer;
+use super::indexer::{get_id_attributes, Indexer};
 
 /// Default buffer size
 ///
-const DEFAULT_BUFFER_SIZE: usize = 1024; // 1kb
-
-/// IndexedMzML tag
-///
-const INDEXED_MZML_START_TAG: &[u8; 12] = b"<indexedmzML";
-
-/// MzML staret tag
-///
-const MZML_START_TAG: &[u8; 5] = b"<mzML";
-
-/// Opening spectrum list tag + two spaces
-///
-const OPENING_SPECTRUM_LIST_TAG: &[u8; 13] = b"<spectrumList";
-
-/// Closing run tag in reverse
-///
-const CLOSING_RUN_TAG_REV: &[u8; 6] = b">nur/<";
+const DEFAULT_BUFFER_SIZE: usize = 1024 * 1000; // 1MB
 
 /// Opening filechecksum tag
 ///
@@ -270,6 +255,14 @@ where
     }
 }
 
+/// MzML file with indexed spectra and chromatograms.
+type CompactMzML = (
+    Vec<u8>,
+    HashMap<String, usize>,
+    HashMap<String, usize>,
+    bool,
+);
+
 /// This reader will return and mzML with indexed spectra data,
 /// regardless if the provided mzML is indexedmzML or mzML.
 ///
@@ -301,52 +294,40 @@ where
     ) -> Result<File<F>> {
         mzml_file.seek(SeekFrom::Start(0))?;
 
-        let mzml_without_data = Reader::get_mzml_without_data(mzml_file, buffer_size)?;
+        let (mzml_without_data, spectrum_offsets, chromatogram_offsets, is_indexed_mzml) =
+            Reader::get_mzml_without_data(mzml_file, buffer_size, force_reindex)?;
 
-        if mzml_without_data
-            .windows(INDEXED_MZML_START_TAG.len())
-            .any(|window| window == INDEXED_MZML_START_TAG)
-        {
+        if is_indexed_mzml {
             let indexed_mzml = quick_xml::de::from_reader::<_, IndexedMzML<IndexedRun>>(
                 mzml_without_data.as_slice(),
-            )
-            .context("Failed to parse indexed mzML")?;
+            )?;
             if validate_mzml {
                 indexed_mzml.validate()?;
             }
-
             let index = if force_reindex {
-                Indexer::create_index(mzml_file, buffer_size)?
+                Index::new(spectrum_offsets, chromatogram_offsets)
             } else {
                 Index::from(&indexed_mzml.index_list)
             };
 
-            return Ok(File {
+            Ok(File {
                 index,
                 reader: mzml_file,
                 mzml_element: MzMlElement::IndexedMzML(indexed_mzml),
-            });
-        }
-
-        if mzml_without_data
-            .windows(MZML_START_TAG.len())
-            .any(|window| window == MZML_START_TAG)
-        {
+            })
+        } else {
             let mzml =
-                quick_xml::de::from_reader::<_, MzML<IndexedRun>>(mzml_without_data.as_slice())
-                    .context("Failed to parse mzML")?;
+                quick_xml::de::from_reader::<_, MzML<IndexedRun>>(mzml_without_data.as_slice())?;
             if validate_mzml {
                 mzml.validate()?;
             }
-            let index = Indexer::create_index(mzml_file, buffer_size)?;
-            return Ok(File {
+            let index = Index::new(spectrum_offsets, chromatogram_offsets);
+            Ok(File {
                 index,
                 reader: mzml_file,
                 mzml_element: MzMlElement::MzML(mzml),
-            });
+            })
         }
-
-        Err(anyhow!("Failed to parse mzML"))
     }
 
     /// Reads the mzML file with pre generated index.
@@ -366,12 +347,10 @@ where
     ) -> Result<File<F>> {
         mzml_file.seek(SeekFrom::Start(0))?;
 
-        let mzml_without_data = Reader::get_mzml_without_data(mzml_file, buffer_size)?;
+        let (mzml_without_data, _, _, is_indexed_mzml) =
+            Reader::get_mzml_without_data(mzml_file, buffer_size, false)?;
 
-        if mzml_without_data
-            .windows(INDEXED_MZML_START_TAG.len())
-            .any(|window| window == INDEXED_MZML_START_TAG)
-        {
+        if is_indexed_mzml {
             let indexed_mzml = quick_xml::de::from_reader::<_, IndexedMzML<IndexedRun>>(
                 mzml_without_data.as_slice(),
             )
@@ -380,31 +359,45 @@ where
                 indexed_mzml.validate()?;
             }
 
-            return Ok(File {
+            Ok(File {
                 index,
                 reader: mzml_file,
                 mzml_element: MzMlElement::IndexedMzML(indexed_mzml),
-            });
-        }
-
-        if mzml_without_data
-            .windows(MZML_START_TAG.len())
-            .any(|window| window == MZML_START_TAG)
-        {
+            })
+        } else {
             let mzml =
                 quick_xml::de::from_reader::<_, MzML<IndexedRun>>(mzml_without_data.as_slice())
                     .context("Failed to parse mzML")?;
             if validate_mzml {
                 mzml.validate()?;
             }
-            return Ok(File {
+
+            Ok(File {
                 index,
                 reader: mzml_file,
                 mzml_element: MzMlElement::MzML(mzml),
-            });
+            })
         }
+    }
 
-        Err(anyhow!("Failed to parse mzML"))
+    fn push_start_event(content: &mut Vec<u8>, e: &[u8]) {
+        content.push(b'<');
+        content.extend_from_slice(e);
+        content.push(b'>');
+    }
+
+    fn push_end_event(content: &mut Vec<u8>, e: &[u8]) {
+        content.push(b'<');
+        content.push(b'/');
+        content.extend_from_slice(e);
+        content.push(b'>');
+    }
+
+    fn push_empty_event(content: &mut Vec<u8>, e: &[u8]) {
+        content.push(b'<');
+        content.extend_from_slice(e);
+        content.push(b'/');
+        content.push(b'>');
     }
 
     /// Returns the mzML file without the the actual spectrum or chromatogram data.
@@ -413,123 +406,110 @@ where
     /// * `mzml_file` - A mutable reference to a BufRead and Seek object.
     /// * `buffer_size` - An optional buffer size for reading the mzML file.
     ///
-    pub fn get_mzml_without_data(mzml_file: &mut F, buffer_size: Option<usize>) -> Result<Vec<u8>> {
-        let buffer_size = buffer_size.unwrap_or(DEFAULT_BUFFER_SIZE);
-        // get length of bytes
-        let len = mzml_file.seek(std::io::SeekFrom::End(0))?;
-        let mut current_buffer_size = len.min(buffer_size as u64) as usize;
-        // start from top
+    fn get_mzml_without_data(
+        mzml_file: &mut F,
+        buffer_size: Option<usize>,
+        force_reindex: bool,
+    ) -> Result<CompactMzML> {
         mzml_file.seek(std::io::SeekFrom::Start(0))?;
-
-        // create buffer for reading
-        let mut buffer: Vec<u8> = vec![0; current_buffer_size];
-
-        // counter for content
-        let mut remaining_content = len as usize;
-
-        // create vec for content before the <spectrumList tag
-        let mut start_of_mzml: Vec<u8> = Vec::with_capacity(current_buffer_size);
-        let mut search_offset = 0;
+        let mut reader = quick_xml::Reader::from_reader(mzml_file);
+        let buffer_size = buffer_size.unwrap_or(DEFAULT_BUFFER_SIZE);
+        let mut buffer = Vec::with_capacity(buffer_size);
+        let mut is_indexed_mzml = false;
+        let mut spectrum_offsets: HashMap<String, usize> = HashMap::new();
+        let mut chromatogram_offsets: HashMap<String, usize> = HashMap::new();
+        let mut content = Vec::new();
+        let mut add_content = true;
+        let mut force_reindex = force_reindex;
         loop {
-            // Read bytes and add to start_of_mzml
-            let read_end = mzml_file
-                .read(buffer.as_mut_slice())
-                .context("Failed to read next chunk in search for the <run>-tag")?;
-            start_of_mzml.extend_from_slice(&buffer[..read_end]);
-            // Search for the OPENING_SPECTRUM_LIST_TAG in start_of_mzml starting where the last search ended
-            let run_tag_offset = start_of_mzml[search_offset..]
-                .windows(OPENING_SPECTRUM_LIST_TAG.len())
-                .position(|window| window == OPENING_SPECTRUM_LIST_TAG);
-            // If the tag is not found and there is still content to read, continue
-            if run_tag_offset.is_none() {
-                // set the search offset to the end of the last search - the length of the searched tag in case of overlapping
-                search_offset = start_of_mzml.len() - OPENING_SPECTRUM_LIST_TAG.len();
-                remaining_content -= buffer.capacity();
-                // Adjust buffer size if there is less content remaining
-                if remaining_content < current_buffer_size {
-                    current_buffer_size = remaining_content;
-                    buffer.truncate(current_buffer_size);
+            match reader.read_event_into(&mut buffer) {
+                Ok(quick_xml::events::Event::Start(ref e)) => match e.local_name().as_ref() {
+                    b"indexedmzML" => {
+                        is_indexed_mzml = true;
+                        Self::push_start_event(&mut content, e);
+                    }
+                    b"mzML" => {
+                        // if the mzML file is not indexed, we need to index it
+                        if !is_indexed_mzml {
+                            force_reindex = true;
+                        }
+                        Self::push_start_event(&mut content, e);
+                    }
+                    b"spectrumList" => {
+                        Self::push_start_event(&mut content, e);
+                        add_content = false;
+                    }
+                    b"chromatogramList" => {
+                        Self::push_start_event(&mut content, e);
+                        add_content = false;
+                    }
+                    b"spectrum" => {
+                        if force_reindex {
+                            spectrum_offsets.insert(
+                                get_id_attributes(e)?,
+                                reader.buffer_position() as usize - e.len() - 2, // position reports last byte of start tag `>`, mzML wants the first byte `<`
+                            );
+                        }
+                    }
+                    b"chromatogram" => {
+                        if force_reindex {
+                            chromatogram_offsets.insert(
+                                get_id_attributes(e)?,
+                                reader.buffer_position() as usize - e.len() - 2, // position reports last byte of start tag `>`, mzML wants the first byte `<`
+                            );
+                        }
+                    }
+                    _ => {
+                        if add_content {
+                            Self::push_start_event(&mut content, e);
+                        }
+                    }
+                },
+                Ok(quick_xml::events::Event::End(ref e)) => match e.local_name().as_ref() {
+                    b"spectrumList" => {
+                        Self::push_end_event(&mut content, e);
+                        add_content = true;
+                    }
+                    b"chromatogramList" => {
+                        Self::push_end_event(&mut content, e);
+                        add_content = true;
+                    }
+                    _ => {
+                        if add_content {
+                            Self::push_end_event(&mut content, e);
+                        }
+                    }
+                },
+                Ok(quick_xml::events::Event::Empty(ref e)) => {
+                    if add_content {
+                        Self::push_empty_event(&mut content, e);
+                    }
                 }
-                continue;
+                Ok(quick_xml::events::Event::Text(ref e)) => {
+                    if add_content {
+                        content.extend_from_slice(e);
+                    }
+                }
+                Ok(quick_xml::events::Event::Decl(ref e)) => {
+                    if add_content {
+                        content.push(b'<');
+                        content.push(b'?');
+                        content.extend_from_slice(e);
+                        content.push(b'?');
+                        content.push(b'>');
+                    }
+                }
+                Ok(quick_xml::events::Event::Eof) => break,
+                Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                _ => (),
             }
-            start_of_mzml.truncate(search_offset + run_tag_offset.unwrap_or(0));
-            break;
         }
-
-        // Remove everything until the last newline for proper indention with the rest of the mzML
-        loop {
-            if let Some(c) = start_of_mzml.last() {
-                if *c != b'\n' {
-                    start_of_mzml.pop();
-                } else {
-                    break;
-                }
-            }
-        }
-        let mut end_of_mzml: Vec<u8> = Vec::with_capacity(current_buffer_size);
-
-        // reset and start form the end
-        current_buffer_size = len.min(current_buffer_size as u64) as usize;
-        remaining_content = len as usize;
-        search_offset = 0;
-        // Move to the end of the file minus the buffer size
-        let mut last_file_pos =
-            mzml_file.seek(std::io::SeekFrom::Start(len - current_buffer_size as u64))?;
-
-        loop {
-            // read bytes and add to end_of_mzml
-            let read_end = mzml_file
-                .read(buffer.as_mut_slice())
-                .context("Failed to read next chunk in search for the </run>-tag")?;
-            buffer[..read_end].as_mut().reverse();
-            end_of_mzml.extend_from_slice(&buffer[..read_end]);
-            let run_tag_offset = end_of_mzml[search_offset..]
-                .windows(CLOSING_RUN_TAG_REV.len())
-                .position(|window| window == CLOSING_RUN_TAG_REV);
-            // If the tag is not found and there is still content to read, continue
-            if run_tag_offset.is_none() && remaining_content > 0 {
-                if remaining_content >= buffer.capacity() {
-                    remaining_content -= buffer.capacity();
-                } else {
-                    remaining_content = 0;
-                }
-                if remaining_content < current_buffer_size {
-                    current_buffer_size = remaining_content;
-                    buffer.truncate(current_buffer_size);
-                }
-                search_offset = end_of_mzml.len() - CLOSING_RUN_TAG_REV.len();
-                last_file_pos = mzml_file.seek(std::io::SeekFrom::Start(
-                    last_file_pos - current_buffer_size as u64,
-                ))?;
-                continue;
-            }
-            let mut truncate_index =
-                search_offset + run_tag_offset.unwrap_or(0) + CLOSING_RUN_TAG_REV.len();
-
-            // for proper indention we need top add everything until the next newline
-            // which should be within the next 10 bytes or so
-            // if there are to few bytes left, we read the next 10 bytes
-            if truncate_index + 10 > end_of_mzml.len() {
-                buffer.truncate(10);
-                mzml_file.seek(SeekFrom::Start(last_file_pos - 10))?;
-                mzml_file.read_exact(buffer.as_mut_slice())?;
-                buffer.reverse();
-                end_of_mzml.extend_from_slice(&buffer);
-            }
-
-            for i in 0..10 {
-                if end_of_mzml[truncate_index + i] == b'\n' {
-                    truncate_index += i;
-                    break;
-                }
-            }
-
-            end_of_mzml.truncate(truncate_index);
-            end_of_mzml.reverse();
-            break;
-        }
-
-        Ok([start_of_mzml, end_of_mzml].concat())
+        Ok((
+            content,
+            spectrum_offsets,
+            chromatogram_offsets,
+            is_indexed_mzml,
+        ))
     }
 }
 
@@ -537,7 +517,8 @@ where
 mod test {
     use super::*;
 
-    /// Reused test spectrums
+    /// Check if the spectrum with id `controllerType=0 controllerNumber=1 scan=3865` has the correct
+    /// data
     ///
     fn test_spectrum_3865(spectrum: Spectrum) {
         assert_eq!(spectrum.id, "controllerType=0 controllerNumber=1 scan=3865");
@@ -553,6 +534,8 @@ mod test {
         assert_eq!(mass_to_charge.value, "447.346893310547");
     }
 
+    /// Get the mzML file without the data
+    /// and check if the content is correct.
     #[test]
     fn test_get_mzml_without_data() {
         let raw_file = std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap();
@@ -560,11 +543,21 @@ mod test {
         let expected_string =
             std::fs::read_to_string("test_files/spectra_small.unindexed.no_data.mzML").unwrap();
 
-        let mzml_without_data = Reader::get_mzml_without_data(&mut raw_reader, None).unwrap();
+        let (mzml_without_data, spectrum_offsets, chromatogram_offsets, is_indexed_mzml) =
+            Reader::get_mzml_without_data(&mut raw_reader, None, false).unwrap();
         let mzml_without_data_string = String::from_utf8(mzml_without_data).unwrap();
+        // check the content
         assert_eq!(mzml_without_data_string, expected_string);
+        // should be 11 chromatogram, and proofs the reindexing was forced as the file it is not indexed
+        assert_eq!(spectrum_offsets.len(), 11);
+        // should be 1 chromatogram, and proofs the reindexing was forced as the file it is not indexed
+        assert_eq!(chromatogram_offsets.len(), 1);
+        // should be false
+        assert!(!is_indexed_mzml);
     }
 
+    /// Get the indexed mzML file without the data
+    /// and check if the content is correct.
     #[test]
     fn test_get_indexed_mzml_without_data() {
         let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
@@ -572,41 +565,90 @@ mod test {
         let expected_string =
             std::fs::read_to_string("test_files/spectra_small.no_data.mzML").unwrap();
 
-        let mzml_without_data = Reader::get_mzml_without_data(&mut raw_reader, None).unwrap();
+        let (mzml_without_data, spectrum_offsets, chromatogram_offsets, is_indexed_mzml) =
+            Reader::get_mzml_without_data(&mut raw_reader, None, false).unwrap();
         let mzml_without_data_string = String::from_utf8(mzml_without_data).unwrap();
+        // check the content
         assert_eq!(mzml_without_data_string, expected_string);
+        // should be 0, no reindexing was forced as the file it is indexed
+        assert_eq!(spectrum_offsets.len(), 0);
+        // should be 0 no reindexing was forced as the file it is indexed
+        assert_eq!(chromatogram_offsets.len(), 0);
+        // should be true
+        assert!(is_indexed_mzml);
     }
 
-    #[test]
-    fn test_reader_mzml() {
+    /// Test the reader with an unindexed mzML file
+    /// and check if the content is correct.
+    ///
+    /// # Arguments
+    /// * `force_reindex` - A boolean flag to force reindexing of the mzML file.
+    ///
+    fn test_reader_mzml(force_reindex: bool) {
         let raw_file = std::fs::File::open("test_files/spectra_small.unindexed.mzML").unwrap();
         let mut raw_reader = std::io::BufReader::new(raw_file);
-        let file = Reader::read_indexed(&mut raw_reader, None, false, true).unwrap();
+        let file = Reader::read_indexed(&mut raw_reader, None, false, force_reindex).unwrap();
         assert_eq!(file.index.get_spectra().len(), 11);
         assert_eq!(file.index.get_chromatograms().len(), 1);
         assert!(matches!(file.mzml_element, MzMlElement::MzML(_)));
     }
 
+    /// Test the reader with an indexed mzML file
+    /// and check if the content is correct.
+    /// Reindex is set to false, but should be forced to true
+    /// as the file is not indexed.
+    ///
     #[test]
-    fn test_reader_indexed_mzml() {
+    fn test_reader_mzml_no_reindex() {
+        test_reader_mzml(false);
+    }
+
+    /// Test the reader with an indexed mzML file
+    /// and check if the content is correct.
+    /// Reindex is set to true, result should be the same as
+    /// `test_reader_mzml_no_reindex`
+    ///
+    #[test]
+    fn test_reader_mzml_with_reindex() {
+        test_reader_mzml(true);
+    }
+
+    /// Test the reader with an indexed mzML file
+    /// and check if the content is correct.
+    ///
+    /// # Arguments
+    /// * `force_reindex` - A boolean flag to force reindexing of the mzML file.
+    ///
+    fn test_reader_indexed_mzml(force_reindex: bool) {
         let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
         let mut raw_reader = std::io::BufReader::new(raw_file);
-        let file = Reader::read_indexed(&mut raw_reader, None, false, true).unwrap();
+        let file = Reader::read_indexed(&mut raw_reader, None, false, force_reindex).unwrap();
         assert_eq!(file.index.get_spectra().len(), 11);
         assert_eq!(file.index.get_chromatograms().len(), 1);
         assert!(matches!(file.mzml_element, MzMlElement::IndexedMzML(_)));
     }
 
+    /// Test the reader with an indexed mzML file
+    /// and check if the content is correct.
+    ///
     #[test]
-    fn test_reader_indexed_mzml_reindex() {
-        let raw_file = std::fs::File::open("test_files/spectra_small.mzML").unwrap();
-        let mut raw_reader = std::io::BufReader::new(raw_file);
-        let file = Reader::read_indexed(&mut raw_reader, None, true, true).unwrap();
-        assert_eq!(file.index.get_spectra().len(), 11);
-        assert_eq!(file.index.get_chromatograms().len(), 1);
-        assert!(matches!(file.mzml_element, MzMlElement::IndexedMzML(_)));
+    fn test_reader_indexed_mzml_no_reindex() {
+        test_reader_indexed_mzml(false);
     }
 
+    /// Test the reader with an indexed mzML file
+    /// and check if the content is correct.
+    /// Reindex is set to true, result should be the same as
+    /// `test_reader_indexed_mzml_no_reindex`
+    #[test]
+    fn test_reader_indexed_mzml_with_reindex() {
+        test_reader_indexed_mzml(true);
+    }
+
+    /// Test the reader with an pre indexed indexed mzML file
+    /// and check if the file struct is correctly assembled
+    /// and data is accessible
+    ///
     #[test]
     fn test_reader_indexed_mzml_with_existing_index() {
         // create buffered reader
@@ -623,6 +665,10 @@ mod test {
         test_spectrum_3865(spectrum);
     }
 
+    /// Test the reader with an pre indexed mzML file
+    /// and check if the file struct is correctly assembled
+    /// and data is accessible
+    ///
     #[test]
     fn test_spectrum_separation_from_mzml() {
         // Read file
@@ -646,6 +692,7 @@ mod test {
         test_spectrum_3865(spectrum);
     }
 
+    /// Test the spectrum separation from an indexed mzML file
     #[test]
     fn test_spectrum_separation_from_indexedmzml() {
         // Read file

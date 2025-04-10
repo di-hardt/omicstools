@@ -1,25 +1,12 @@
 use std::collections::HashMap;
 use std::io::prelude::*;
 
-use anyhow::bail;
 use anyhow::Result;
 
 use crate::proteomics::io::mzml::index::Index;
 
-/// Start of spectrum tag
-const SPECTRUM_START_TAG: &[u8] = b"<spectrum ";
-
-/// End of spectrum tag
-const SPECTRUM_END_TAG: &[u8] = b"</spectrum>";
-
-/// Start of spectrum tag
-const CHROMATOGRAM_START_TAG: &[u8] = b"<chromatogram ";
-
-/// End of spectrum tag
-const CHROMATOGRAM_END_TAG: &[u8] = b"</chromatogram>";
-
-/// Start of spectrum ID tag
-const SPECTRUM_ID_START: &[u8] = b"id=\"";
+/// Start of ID attribute
+const ID_START: &[u8] = b"id=\"";
 
 /// Attribute end tag
 const ATTRIBUTE_END: &[u8] = b"\"";
@@ -38,159 +25,83 @@ where
     F: BufRead + Seek,
 {
     mzml_file: &'a mut F,
-    buffer: Vec<u8>,
-    content: Vec<u8>,
-    file_position: usize,
+    buffer_size: usize,
 }
 
 impl<'a, F> Indexer<'a, F>
 where
     F: BufRead + Seek,
 {
-    pub fn new(mzml_file: &'a mut F, buffer_size: Option<usize>) -> Self {
+    pub fn new(reader: &'a mut F, buffer_size: Option<usize>) -> Self {
         Self {
-            mzml_file,
-            buffer: vec![0; buffer_size.unwrap_or(DEFAULT_BUFFER_SIZE)],
-            content: Vec::with_capacity(buffer_size.unwrap_or(DEFAULT_BUFFER_SIZE)),
-            file_position: 0,
+            mzml_file: reader,
+            buffer_size: buffer_size.unwrap_or(DEFAULT_BUFFER_SIZE),
         }
-    }
-
-    /// Read the next chunk of the file into the buffer.
-    ///
-    fn read_chunk(&mut self) -> Result<usize, std::io::Error> {
-        let num_bytes = self.mzml_file.read(&mut self.buffer)?;
-        self.file_position += num_bytes;
-        self.content.extend_from_slice(&self.buffer[..num_bytes]);
-        Ok(num_bytes)
-    }
-
-    /// Find index of closing tag
-    ///
-    /// # Arguments
-    /// * `search_offset` - Offset to start searching from
-    /// * `search_for` - Tag to search for
-    ///
-    fn find_closing_tag(&mut self, mut search_offset: usize, search_for: &[u8]) -> Result<usize> {
-        loop {
-            if let Some(position) = self.content[search_offset..]
-                .windows(search_for.len())
-                .position(|window| window == search_for)
-            {
-                return Ok(search_offset + position + search_for.len());
-            }
-            search_offset = self.content.len() - search_for.len();
-            self.read_chunk()?;
-            if self.content.is_empty() {
-                bail!("Closing tag not found.");
-            }
-        }
-    }
-
-    /// Searches and sets the spectrum offsets.
-    ///
-    /// # Arguments
-    /// * `plain_spectrum` - Plain spectrum string
-    ///
-    fn get_spectrum_id(plain_spectrum: &[u8]) -> Result<String> {
-        let spec_id_start_idx: usize = match plain_spectrum
-            .windows(SPECTRUM_ID_START.len())
-            .position(|window| window == SPECTRUM_ID_START)
-        {
-            Some(position) => position + SPECTRUM_ID_START.len(),
-            None => bail!("Spectrum ID attribute start not found."),
-        };
-        let spec_id_end_idx: usize = match plain_spectrum[spec_id_start_idx..]
-            .windows(ATTRIBUTE_END.len())
-            .position(|window| window == ATTRIBUTE_END)
-        {
-            Some(position) => spec_id_start_idx + position,
-            None => bail!("Spectrum ID attribute end not found."),
-        };
-        Ok(
-            String::from_utf8_lossy(&plain_spectrum[spec_id_start_idx..spec_id_end_idx])
-                .to_string(),
-        )
-    }
-
-    fn foo(
-        &mut self,
-        start_tag: &[u8],
-        end_tag: &[u8],
-        search_offset: &mut usize,
-        offsets: &mut HashMap<String, usize>,
-    ) -> Result<bool> {
-        if let Some(position) = self.content[*search_offset..]
-            .windows(start_tag.len())
-            .position(|window| window == start_tag)
-        {
-            // Relative offset of the start tag in loaded content
-            let relative_start_offset = *search_offset + position;
-            // Absolut position of the start tag in the file
-            let absolut_start_offset =
-                self.file_position - self.content.len() + relative_start_offset;
-            // Relative position of the end tag
-            let relative_end_offset = self.find_closing_tag(relative_start_offset, end_tag)?;
-            // Tag ID
-            let tag_id =
-                Self::get_spectrum_id(&self.content[relative_start_offset..relative_end_offset])?;
-            // Add offset to the map
-            offsets.insert(tag_id, absolut_start_offset);
-            // Free up some memory by removing the content up to the end tag
-            drop(self.content.drain(..relative_end_offset));
-            // reset search offset
-            *search_offset = 0;
-            return Ok(true);
-        }
-        Ok(false)
     }
 
     /// Returns the spectrum offsets, beginning with '<spectrum ' and ending with </spectrum>.
     ///
     fn create_idx(&mut self) -> Result<Index> {
         self.mzml_file.seek(std::io::SeekFrom::Start(0))?;
-        let mut spectra_offsets: HashMap<String, usize> = HashMap::new();
+        let mut buffer = Vec::with_capacity(self.buffer_size);
+        let mut reader = quick_xml::Reader::from_reader(&mut self.mzml_file);
+        let mut spectrum_offsets: HashMap<String, usize> = HashMap::new();
         let mut chromatogram_offsets: HashMap<String, usize> = HashMap::new();
-        let mut search_offset = 0;
-
         loop {
-            let num_bytes = self.read_chunk()?;
-            if self.foo(
-                SPECTRUM_START_TAG,
-                SPECTRUM_END_TAG,
-                &mut search_offset,
-                &mut spectra_offsets,
-            )? {
-                continue;
-            }
-
-            if self.foo(
-                CHROMATOGRAM_START_TAG,
-                CHROMATOGRAM_END_TAG,
-                &mut search_offset,
-                &mut chromatogram_offsets,
-            )? {
-                continue;
-            }
-
-            search_offset = self.content.len() - CHROMATOGRAM_END_TAG.len();
-
-            if num_bytes == 0 {
-                break;
+            match reader.read_event_into(&mut buffer) {
+                Ok(quick_xml::events::Event::Start(ref e)) => match e.local_name().as_ref() {
+                    b"spectrum" => {
+                        spectrum_offsets.insert(
+                            get_id_attributes(e)?,
+                            reader.buffer_position() as usize - e.len() - 2, // position reports last byte of start tag `>`, mzML wants the first byte `<`
+                        );
+                    }
+                    b"chromatogram" => {
+                        chromatogram_offsets.insert(
+                            get_id_attributes(e)?,
+                            reader.buffer_position() as usize - e.len() - 2, // position reports last byte of start tag `>`, mzML wants the first byte `<`
+                        );
+                    }
+                    _ => (),
+                },
+                Ok(quick_xml::events::Event::Eof) => break,
+                Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                _ => (),
             }
         }
-        Ok(Index::new(spectra_offsets, chromatogram_offsets))
+        Ok(Index::new(spectrum_offsets, chromatogram_offsets))
     }
 
     /// Creates a file index for the given mzML file.
     ///
     /// # Arguments
     /// * `reader`- Open reader.
-    /// * `chunk_size` - Size of the chunks to read from the file.
+    /// * `buffer_size` - Size of the chunks to read from the file.
     ///
-    pub fn create_index(reader: &'a mut F, chunk_size: Option<usize>) -> Result<Index> {
-        Self::new(reader, chunk_size).create_idx()
+    pub fn create_index(reader: &'a mut F, buffer_size: Option<usize>) -> Result<Index> {
+        Self::new(reader, buffer_size).create_idx()
     }
+}
+
+pub fn get_id_attributes(id: &[u8]) -> Result<String> {
+    let id_start = id
+        .windows(ID_START.len())
+        .position(|x| x == ID_START)
+        .ok_or_else(|| {
+            anyhow::anyhow!("No id attribute found. `{}`", String::from_utf8_lossy(id))
+        })?
+        + ID_START.len();
+    let id_end = id[id_start..]
+        .windows(ATTRIBUTE_END.len())
+        .position(|x| x == ATTRIBUTE_END)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "ID has no end, broken tag? `{}`",
+                String::from_utf8_lossy(id)
+            )
+        })?
+        + id_start;
+    Ok(String::from_utf8_lossy(&id[id_start..id_end]).to_string())
 }
 
 #[cfg(test)]
@@ -249,11 +160,23 @@ mod test {
     const EXPECTED_CROMATOGRAMS: [(&str, (usize, usize)); 1] = [("TIC", (86784, 622457))];
 
     #[test]
+    fn test_id_extraction() {
+        let id = b"spectrum index=\"0\" id=\"controllerType=0 controllerNumber=1 scan=2814\" defaultArrayLength=\"29\"";
+        let id_str = get_id_attributes(id).unwrap();
+        assert_eq!(
+            id_str,
+            "controllerType=0 controllerNumber=1 scan=2814".to_string()
+        );
+    }
+
+    #[test]
     fn test_index_creation() {
         let file_path = Path::new("./test_files/spectra_small.mzML");
         let mut buf_reader = BufReader::new(File::open(file_path).unwrap());
 
+        let now = std::time::Instant::now();
         let index = Indexer::create_index(&mut buf_reader, None).unwrap();
+        println!("Index creation took: {:?}", now.elapsed());
 
         assert_eq!(index.get_spectra().len(), EXPECTED_SPECTRA.len());
 
@@ -271,5 +194,14 @@ mod test {
                 assert_eq!(expected_start_end.0, *start_end);
             }
         }
+    }
+
+    #[test]
+    fn test_testy() {
+        let file_path = Path::new("/Users/winkelhardtdi/Documents/datasets/PXD028735/LFQ_Orbitrap_DDA_Condition_A_Sample_Alpha_01.mzML");
+        let mut buf_reader = BufReader::new(File::open(file_path).unwrap());
+        let now = std::time::Instant::now();
+        let _ = Indexer::create_index(&mut buf_reader, None).unwrap();
+        println!("Index creation took: {:?}", now.elapsed());
     }
 }
