@@ -2,7 +2,7 @@
 use anyhow::{bail, Result};
 
 // Local imports
-use crate::proteomics::{io::mzml::elements::cv_param::CvParam, ontology::get_children_of};
+use crate::proteomics::{io::mzml::elements::cv_param::CvParam, ontology::Ontology};
 
 pub trait CvParamsValidator {
     fn get_parent_accession_for_must_once(&self) -> &'static Vec<&'static str>;
@@ -19,7 +19,7 @@ pub trait CvParamsValidator {
     fn validate_must_once(&self, cv_params: &[CvParam], element_tag: &str) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_must_once().iter() {
-            let children = get_children_of(accession)?;
+            let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {
@@ -62,7 +62,7 @@ pub trait CvParamsValidator {
     ) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_must_once_or_many().iter() {
-            let children = get_children_of(accession)?;
+            let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {
@@ -96,7 +96,7 @@ pub trait CvParamsValidator {
     fn validate_may_once(&self, cv_params: &[CvParam], element_tag: &str) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_may_once().iter() {
-            let children = get_children_of(accession)?;
+            let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {

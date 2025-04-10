@@ -1,139 +1,171 @@
 use std::{collections::HashSet, sync::OnceLock};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use fastobo_graphs::IntoGraph;
 
+/// The subfolder in the home directory where the ontology files are cached.
+///
 const ONTOLOGY_FOLDER: &str = ".life_science_ontologies";
 
-/// The URL of the PSI-MS ontology.
+/// Access ontology as needed.
+/// Data is only fetched once and cached in the home directory.
 ///
-const PSI_MS_URL: &str =
-    "https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/refs/tags/v4.1.184/psi-ms.obo";
-
-lazy_static! {
-    /// The PSI-MS ontology as a fastobo graph.
-    static ref PSI_MS: OnceLock<Result<fastobo_graphs::model::GraphDocument>> = OnceLock::new();
+pub struct Ontology {
+    pub name: &'static str,
+    pub url: &'static str,
+    pub filename: &'static str,
+    pub graph: OnceLock<Result<fastobo_graphs::model::GraphDocument>>,
 }
 
-/// Returns the PSI-MS ontology as a fastobo graph.
-/// Internet connection is required.
-///
-pub fn get_psi_ms() -> &'static Result<fastobo_graphs::model::GraphDocument> {
-    PSI_MS.get_or_init(|| {
-        // Check if the home directory is available, if so set cache path
-        #[allow(deprecated)] // deprecation flag is supposed to be removed in 1.86 for home_dir
-        let cache_path = match std::env::home_dir() {
-            Some(path) => {
-                if path.is_dir() {
-                    Some(path.join(ONTOLOGY_FOLDER))
-                } else {
-                    None
+impl Ontology {
+    /// Downloads the ontology from the given URL.
+    ///
+    fn download(&self) -> Result<String> {
+        let response = reqwest::blocking::get(self.url).map_err(|err| {
+            anyhow!(
+                "Error fetch fetching {} from {}: {}",
+                self.name,
+                self.url,
+                err
+            )
+        })?;
+        response
+            .text()
+            .map_err(|err| anyhow!("Error reading response from {}: {}", self.url, err))
+    }
+
+    /// Returns the ontology as a fastobo graph.
+    /// Internet connection is required.
+    ///
+    pub fn get_graph(&self) -> &Result<fastobo_graphs::model::GraphDocument> {
+        self.graph.get_or_init(|| {
+            // Check if the home directory is available, if so set cache path
+            #[allow(deprecated)] // deprecation flag is supposed to be removed in 1.86 for home_dir
+            let cache_path = match std::env::home_dir() {
+                Some(path) => {
+                    if path.is_dir() {
+                        Some(path.join(ONTOLOGY_FOLDER))
+                    } else {
+                        None
+                    }
                 }
+                None => None,
+            };
+
+            // Check if the cache path is set and create it if it doesn't exist
+            if let Some(cache_path) = cache_path {
+                if !cache_path.is_dir() {
+                    std::fs::create_dir_all(&cache_path)
+                        .context("Error creating ontology cache directory")?;
+                }
+
+                let ontology_path = cache_path.join(self.filename);
+                if !ontology_path.is_file() {
+                    let plain_ontology = self.download()?;
+                    std::fs::write(&ontology_path, plain_ontology).map_err(|err| {
+                        anyhow!("Error write {} to {}: {}", self.filename, self.url, err)
+                    })?;
+                }
+                let doc = fastobo::from_file(ontology_path).map_err(|err| {
+                    anyhow!("Error reading {} from {}: {}", self.filename, self.url, err)
+                })?;
+                return Ok(doc.into_graph()?);
             }
-            None => None,
+
+            let plain_ontology = self.download()?;
+
+            let doc = fastobo::from_str(plain_ontology).map_err(|err| {
+                anyhow!("Error reading {} from {}: {}", self.filename, self.url, err)
+            })?;
+            Ok(doc.into_graph()?)
+        })
+    }
+
+    /// Returns the accession of all the children of the term with the given accession.
+    ///
+    /// # Arguments
+    /// * `accession` - The accession of the term.
+    ///
+    pub fn get_children_of(accession: &str) -> Result<Vec<String>> {
+        let colon_pos = match accession.find(':') {
+            Some(pos) => pos,
+            None => {
+                return Err(anyhow::anyhow!(
+                    "Invalid accession `{}`, has not ontology part",
+                    accession
+                ))
+            }
         };
 
-        // Check if the cache path is set and create it if it doesn't exist
-        if let Some(cache_path) = cache_path {
-            if !cache_path.is_dir() {
-                std::fs::create_dir_all(&cache_path)
-                    .context("Error creating ontology cache directory")?;
+        match &accession[..colon_pos] {
+            "MS" => {
+                let children = PSI_MS.collect_children_associations(accession)?;
+                Ok(children)
             }
-
-            let ontology_path = cache_path.join("psi-ms.obo");
-            if !ontology_path.is_file() {
-                println!("Downloading PSI-MS ontology to {}", ontology_path.display());
-                let response =
-                    reqwest::blocking::get(PSI_MS_URL).context("Error fetching PSI-MS ontology")?;
-                std::fs::write(&ontology_path, response.bytes()?)
-                    .context("Error writing PSI-MS ontology to file")?;
+            "UO" => {
+                let children = UNIT.collect_children_associations(accession)?;
+                Ok(children)
             }
-            println!("Reading PSI-MS ontology from {}", ontology_path.display());
-            let doc = fastobo::from_file(ontology_path).context("Error reading PSI-MS ontology")?;
-            return Ok(doc.into_graph()?);
-        }
-
-        let response =
-            reqwest::blocking::get(PSI_MS_URL).context("Error fetching PSI-MS ontology")?;
-
-        let doc = fastobo::from_str(response.text()?).context("Error reading PSI-MS ontology")?;
-        Ok(doc.into_graph()?)
-    })
-}
-
-/// Returns the accession of all the children of the term with the given accession.
-///
-/// # Arguments
-/// * `accession` - The accession of the term.
-///
-pub fn get_children_of(accession: &str) -> Result<Vec<String>> {
-    let colon_pos = match accession.find(':') {
-        Some(pos) => pos,
-        None => {
-            return Err(anyhow::anyhow!(
-                "Invalid accession `{}`, has not ontology part",
+            _ => Err(anyhow::anyhow!(
+                "Invalid ontology part `{}` in accession `{}`",
+                &accession[..colon_pos],
                 accession
-            ))
+            )),
         }
-    };
+    }
 
-    match &accession[..colon_pos] {
-        "MS" => {
-            let psi_ms = match get_psi_ms().as_ref() {
-                Ok(psi_ms) => psi_ms,
-                Err(e) => return Err(anyhow::anyhow!("Error loading PSI-MS ontology: {}", e)),
-            };
-            let children = collect_children_associations(psi_ms, accession)?;
-            Ok(children)
-        }
-        _ => Err(anyhow::anyhow!(
-            "Invalid ontology part `{}` in accession `{}`",
-            &accession[..colon_pos],
-            accession
-        )),
+    /// Collects the children associations of the term with the given accession.
+    ///
+    /// # Arguments
+    /// * `accession` - The accession of the term.
+    ///
+    fn collect_children_associations(&self, accession: &str) -> Result<Vec<String>> {
+        let url_accession = accession.replace(":", "_");
+        // Get inner data
+        let graph = match self.get_graph().as_ref() {
+            Ok(data) => data,
+            Err(e) => return Err(anyhow::anyhow!("Error loading ontology: {}", e)),
+        };
+
+        let mut children: Vec<String> = graph
+            .graphs
+            .iter()
+            .flat_map(|g| {
+                g.edges
+                    .iter()
+                    .filter(|e| e.obj.ends_with(&url_accession) && e.pred.ends_with("is_a"))
+                    .map(|e| match e.sub.split("/").last() {
+                        Some(child) => {
+                            let new_child = child.replace("_", ":");
+                            let mut next_level_children = Ontology::get_children_of(&new_child)?;
+                            next_level_children.push(new_child);
+                            Ok(next_level_children)
+                        }
+                        None => Err(anyhow::anyhow!(
+                            "Error parsing child accession from `{:?}`",
+                            e
+                        )),
+                    })
+            })
+            .collect::<Result<Vec<Vec<String>>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<String>>();
+
+        let unique_childrens: HashSet<String> = children.drain(..).collect();
+        children.extend(unique_childrens);
+        Ok(children)
     }
 }
 
-/// Collects the children associations of the term with the given accession.
+/// The PSI-MS ontology.
 ///
-/// # Arguments
-/// * `ontology` - The ontology graph.
-/// * `accession` - The accession of the term.
-///
-fn collect_children_associations(
-    ontology: &fastobo_graphs::model::GraphDocument,
-    accession: &str,
-) -> Result<Vec<String>> {
-    let url_accession = accession.replace(":", "_");
-    let mut children: Vec<String> = ontology
-        .graphs
-        .iter()
-        .flat_map(|g| {
-            g.edges
-                .iter()
-                .filter(|e| e.obj.ends_with(&url_accession) && e.pred.ends_with("is_a"))
-                .map(|e| match e.sub.split("/").last() {
-                    Some(child) => {
-                        let new_child = child.replace("_", ":");
-                        let mut next_level_children = get_children_of(&new_child)?;
-                        next_level_children.push(new_child);
-                        Ok(next_level_children)
-                    }
-                    None => Err(anyhow::anyhow!(
-                        "Error parsing child accession from `{:?}`",
-                        e
-                    )),
-                })
-        })
-        .collect::<Result<Vec<Vec<String>>>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<String>>();
-
-    let unique_childrens: HashSet<String> = children.drain(..).collect();
-    children.extend(unique_childrens);
-    Ok(children)
-}
+pub static PSI_MS: Ontology = Ontology {
+    name: "PSI-MS",
+    url: "https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/refs/tags/v4.1.184/psi-ms.obo",
+    filename: "psi-ms.obo",
+    graph: OnceLock::new(),
+};
 
 #[cfg(test)]
 mod tests {
@@ -170,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_get_psi_ms() {
-        let children = get_children_of("MS:1000044").unwrap();
+        let children = Ontology::get_children_of("MS:1000044").unwrap();
 
         assert_eq!(children.len(), EXPECTED_CHILDREN_FOR_PSI_MS_TEST.len());
         for expected_child in &EXPECTED_CHILDREN_FOR_PSI_MS_TEST {
