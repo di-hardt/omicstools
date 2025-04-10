@@ -167,6 +167,15 @@ pub static PSI_MS: Ontology = Ontology {
     graph: OnceLock::new(),
 };
 
+/// The Unit ontology.
+///
+pub static UNIT: Ontology = Ontology {
+    name: "Unit",
+    url: "https://raw.githubusercontent.com/bio-ontology-research-group/unit-ontology/refs/tags/v2023-05-23/unit-ontology-full.obo",
+    filename: "uo-full.obo",
+    graph: OnceLock::new(),
+};
+
 #[cfg(test)]
 mod tests {
 
@@ -200,12 +209,32 @@ mod tests {
         "MS:1003294",
     ];
 
+    /// The expected children of the term with the accession `UO:1000010`.
+    ///
+    const EXPECTED_CHILDREN_FOR_UNIT_TEST: [&str; 5] = [
+        "UO:0000029",
+        "UO:0000028",
+        "UO:0000150",
+        "UO:0000030",
+        "UO:0000010",
+    ];
+
     #[test]
     fn test_get_psi_ms() {
         let children = Ontology::get_children_of("MS:1000044").unwrap();
 
         assert_eq!(children.len(), EXPECTED_CHILDREN_FOR_PSI_MS_TEST.len());
         for expected_child in &EXPECTED_CHILDREN_FOR_PSI_MS_TEST {
+            assert!(children.contains(&expected_child.to_string()));
+        }
+    }
+
+    #[test]
+    fn test_get_unit() {
+        let children = Ontology::get_children_of("UO:1000010").unwrap();
+
+        assert_eq!(children.len(), EXPECTED_CHILDREN_FOR_UNIT_TEST.len());
+        for expected_child in &EXPECTED_CHILDREN_FOR_UNIT_TEST {
             assert!(children.contains(&expected_child.to_string()));
         }
     }
