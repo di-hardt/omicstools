@@ -2,8 +2,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    cv_param::CvParam, referenceable_param_group_ref::ReferenceableParamGroupRef,
-    user_param::UserParam,
+    cv_param::CvParam, is_element::IsElement,
+    referenceable_param_group_ref::ReferenceableParamGroupRef, user_param::UserParam,
 };
 use crate::has_cv_params;
 
@@ -19,9 +19,9 @@ pub struct Analyzer {
     pub user_params: Vec<UserParam>,
 }
 
-impl Analyzer {
-    pub fn validate(&self) -> Result<()> {
-        self.validate_cv_params("activation")?;
+impl IsElement for Analyzer {
+    fn validate(&self) -> Result<()> {
+        self.validate_cv_params("analyzer")?;
         Ok(())
     }
 }
