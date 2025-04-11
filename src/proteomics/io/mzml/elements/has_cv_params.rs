@@ -29,7 +29,7 @@ pub trait HasCvParams {
 
     /// Returns a reference to the cvParam with the given accession.
     ///
-    fn get(&self, accession: &str) -> Option<&CvParam> {
+    fn get_cv_param(&self, accession: &str) -> Option<&CvParam> {
         self.get_cv_params()
             .iter()
             .find(|cv_param| cv_param.accession == accession)
