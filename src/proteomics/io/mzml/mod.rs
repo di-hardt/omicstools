@@ -7,4 +7,3 @@ pub mod index;
 pub mod indexer;
 /// Functions to read spectra information from MzML files
 pub mod reader;
-pub mod validators;

@@ -5,7 +5,7 @@ use super::{
     cv_param::CvParam, referenceable_param_group_ref::ReferenceableParamGroupRef,
     user_param::UserParam,
 };
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Analyzer {
@@ -21,13 +21,14 @@ pub struct Analyzer {
 
 impl Analyzer {
     pub fn validate(&self) -> Result<()> {
-        self.validate_cv_params(&self.cv_params, "activation")?;
+        self.validate_cv_params("activation")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Analyzer,
+    cv_params,
     [
         "MS:1000443", // mass analyzer type
     ],

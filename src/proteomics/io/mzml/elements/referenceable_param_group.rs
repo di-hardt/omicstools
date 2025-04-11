@@ -1,7 +1,7 @@
 // 3rd party imports
 use serde::{Deserialize, Serialize};
 
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 // Local imports
 use super::{cv_param::CvParam, is_element::IsElement};
@@ -16,16 +16,14 @@ pub struct ReferenceableParamGroup {
 
 impl IsElement for ReferenceableParamGroup {
     fn validate(&self) -> anyhow::Result<()> {
-        for cv_param in &self.cv_params {
-            cv_param.validate()?;
-        }
-        self.validate_cv_params(&self.cv_params, "referenceableParamGroup")?;
+        self.validate_cv_params("referenceableParamGroup")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     ReferenceableParamGroup,
+    cv_params,
     [],
     [],
     [],

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 use super::{
     binary_data_array_list::BinaryDataArrayList, cv_param::CvParam, is_element::IsElement,
@@ -26,12 +26,14 @@ impl IsElement for Chromatogram {
         for binary_data_array_list in &self.binary_data_array_list {
             binary_data_array_list.validate()?;
         }
+        self.validate_cv_params("chromatogram")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Chromatogram,
+    cv_params,
     [
         "MS:1000626", // chromatogram type
     ],

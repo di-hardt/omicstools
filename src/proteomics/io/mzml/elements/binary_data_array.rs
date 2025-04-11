@@ -9,7 +9,7 @@ use super::{
     binary::Binary, cv_param::CvParam, is_element::IsElement,
     referenceable_param_group_ref::ReferenceableParamGroupRef, user_param::UserParam,
 };
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BinaryDataArray {
@@ -92,13 +92,14 @@ impl IsElement for BinaryDataArray {
         if self.binary.data.len() != self.encoded_length {
             bail!("Encoded length does not match data length");
         }
-        self.validate_cv_params(&self.cv_params, "binaryDataArray")?;
+        self.validate_cv_params("binaryDataArray")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     BinaryDataArray,
+    cv_params,
     [
         "MS:1000572", // binary data compression type
         "MS:1000513", // binary data array

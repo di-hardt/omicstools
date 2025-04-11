@@ -5,7 +5,7 @@ use super::{
     cv_param::CvParam, is_element::IsElement, scan_window_list::ScanWindowList,
     user_param::UserParam,
 };
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Scan {
@@ -19,10 +19,7 @@ pub struct Scan {
 
 impl IsElement for Scan {
     fn validate(&self) -> Result<()> {
-        for cv_param in &self.cv_params {
-            cv_param.validate()?;
-        }
-        self.validate_cv_params(&self.cv_params, "scan")?;
+        self.validate_cv_params("scan")?;
         for user_param in &self.user_params {
             user_param.validate()?;
         }
@@ -31,8 +28,9 @@ impl IsElement for Scan {
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Scan,
+    cv_params,
     [],
     [],
     [

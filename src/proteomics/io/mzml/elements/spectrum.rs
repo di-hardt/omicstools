@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use anyhow::Result;
 
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 use super::{
     binary_data_array_list::BinaryDataArrayList, cv_param::CvParam, is_element::IsElement,
@@ -38,8 +38,9 @@ impl IsElement for Spectrum {
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Spectrum,
+    cv_params,
     [
         "MS:1000559", // spectrum type
         "MS:1000525", // spectrum representation

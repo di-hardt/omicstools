@@ -4,11 +4,36 @@ use anyhow::{bail, Result};
 // Local imports
 use crate::proteomics::{io::mzml::elements::cv_param::CvParam, ontology::Ontology};
 
-pub trait CvParamsValidator {
+use super::is_element::IsElement;
+
+pub trait HasCvParams {
+    /// Returns a reference to the cvParams of the element.
+    ///
+    fn get_cv_params(&self) -> &[CvParam];
+
+    /// Returns a list of cvParam accessions from which one child must be present in the element.
+    ///
     fn get_parent_accession_for_must_once(&self) -> &'static Vec<&'static str>;
+
+    /// Returns a list of cvParam accessions from which at least one child must be present in the element.
+    ///
     fn get_parent_accession_for_must_once_or_many(&self) -> &'static Vec<&'static str>;
+
+    /// Returns a list of cvParam accessions from which none or one child must be present in the element.
+    ///
     fn get_parent_accession_for_may_once(&self) -> &'static Vec<&'static str>;
+
+    /// Returns a list of cvParam accessions from which at least one child must be present in the element.
+    ///
     fn get_parent_accession_for_zero_or_many(&self) -> &'static Vec<&'static str>;
+
+    /// Returns a reference to the cvParam with the given accession.
+    ///
+    fn get(&self, accession: &str) -> Option<&CvParam> {
+        self.get_cv_params()
+            .iter()
+            .find(|cv_param| cv_param.accession == accession)
+    }
 
     /// Checks if only one of the children of `get_parent_accession_for_must_once` is present in the element.
     ///
@@ -16,14 +41,14 @@ pub trait CvParamsValidator {
     /// * `cv_params` - List of cvParams to be validated.
     /// * `element_tag` - The tag of the element being validated.
     ///
-    fn validate_must_once(&self, cv_params: &[CvParam], element_tag: &str) -> Result<Vec<String>> {
+    fn validate_must_once(&self, element_tag: &str) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_must_once().iter() {
             let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {
-                for cv_param in cv_params.iter() {
+                for cv_param in self.get_cv_params().iter() {
                     if &cv_param.accession == child {
                         child_matches[child_idx] = true;
                     }
@@ -55,18 +80,14 @@ pub trait CvParamsValidator {
     /// * `cv_params` - List of cvParams to be validated.
     /// * `element_tag` - The tag of the element being validated.
     ///
-    fn validate_must_once_or_many(
-        &self,
-        cv_params: &[CvParam],
-        element_tag: &str,
-    ) -> Result<Vec<String>> {
+    fn validate_must_once_or_many(&self, element_tag: &str) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_must_once_or_many().iter() {
             let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {
-                for cv_param in cv_params.iter() {
+                for cv_param in self.get_cv_params().iter() {
                     if &cv_param.accession == child {
                         child_matches[child_idx] = true;
                     }
@@ -93,14 +114,14 @@ pub trait CvParamsValidator {
     /// * `cv_params` - List of cvParams to be validated.
     /// * `element_tag` - The tag of the element being validated.
     ///
-    fn validate_may_once(&self, cv_params: &[CvParam], element_tag: &str) -> Result<Vec<String>> {
+    fn validate_may_once(&self, element_tag: &str) -> Result<Vec<String>> {
         let mut accepted_children = Vec::new();
         for accession in self.get_parent_accession_for_may_once().iter() {
             let children = Ontology::get_children_of(accession)?;
             let mut child_matches = vec![false; children.len()];
 
             for (child_idx, child) in children.iter().enumerate() {
-                for cv_param in cv_params.iter() {
+                for cv_param in self.get_cv_params().iter() {
                     if &cv_param.accession == child {
                         child_matches[child_idx] = true;
                     }
@@ -127,29 +148,33 @@ pub trait CvParamsValidator {
 
     /// Validate the given cvParams list
     ///
-    fn validate_cv_params(&self, cv_params: &[CvParam], element_tag: &str) -> Result<()> {
+    fn validate_cv_params(&self, element_tag: &str) -> Result<()> {
+        for cv_param in self.get_cv_params() {
+            cv_param.validate()?;
+        }
         // Check if all rules (one child of, one or many children of, zero or many children of) are satisfied
         // and collect each acceptable child accession
-        self.validate_must_once(cv_params, element_tag)?;
-        self.validate_must_once_or_many(cv_params, element_tag)?;
-        self.validate_may_once(cv_params, element_tag)?;
+        self.validate_must_once(element_tag)?;
+        self.validate_must_once_or_many(element_tag)?;
+        self.validate_may_once(element_tag)?;
         Ok(())
     }
 }
 
-/// This macro generates the implementation of the `CvParamsValidator` trait for the given struct.
+/// This macro generates the implementation of the `HasCbParams` trait for the given struct.
 ///
 /// # Arguments
 /// * `$name` - The name of the struct for which the implementation is being generated.
+/// * `$cv_vec` - The name of the field in the struct that contains the cvParams.
 /// * `$must_once` - Array of cvParam accession from which one child's accession must be present in the list.
 /// * `$must_once_or_many` - Array of cvParam accession from which at least one child's accession must be present in the list.
 /// * `$may_once` - Array of cvParam accession from which none or one child's accession must be present in the list.
 /// * `$may_one_or_many` - Array of cvParam accession from which at least one child's accession must be present in the list.
 ///
 #[macro_export]
-macro_rules! build_cv_params_validator {
-    ($name:ty, $must_once:tt, $must_once_or_many:tt, $may_once:tt, $may_one_or_many:tt) => {
-        use $crate::proteomics::io::mzml::validators::cv_params_list::CvParamsValidator;
+macro_rules! has_cv_params {
+    ($name:ty, $cv_vec:ident, $must_once:tt, $must_once_or_many:tt, $may_once:tt, $may_one_or_many:tt) => {
+        use $crate::proteomics::io::mzml::elements::has_cv_params::HasCvParams;
 
         lazy_static! {
             pub static ref CV_PARAMS_MUST_ONCE: Vec<&'static str> = vec!$must_once;
@@ -158,7 +183,11 @@ macro_rules! build_cv_params_validator {
             pub static ref CV_PARAMS_MAY_ONCE_OR_MANY: Vec<&'static str> = vec!$may_one_or_many;
         }
 
-        impl CvParamsValidator for $name {
+        impl HasCvParams for $name {
+            fn get_cv_params(&self) -> &[CvParam] {
+                self.$cv_vec.as_ref()
+            }
+
             fn get_parent_accession_for_must_once(&self) -> &'static Vec<&'static str> {
                 &CV_PARAMS_MUST_ONCE
             }

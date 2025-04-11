@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{cv_param::CvParam, is_element::IsElement, user_param::UserParam};
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProcessingMethod {
@@ -24,13 +24,14 @@ impl IsElement for ProcessingMethod {
         for user_param in &self.user_params {
             user_param.validate()?;
         }
-        self.validate_cv_params(&self.cv_params, "processingMethod")?;
+        self.validate_cv_params("processingMethod")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     ProcessingMethod,
+    cv_params,
     [],
     [
         "MS:1000452", // data transformation

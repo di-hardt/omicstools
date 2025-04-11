@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 // Local imports
 use super::{cv_param::CvParam, is_element::IsElement};
@@ -14,16 +14,14 @@ pub struct IsolationWindow {
 
 impl IsElement for IsolationWindow {
     fn validate(&self) -> Result<()> {
-        for cv_params in &self.cv_params {
-            cv_params.validate()?;
-        }
-        self.validate_cv_params(&self.cv_params, "activation")?;
+        self.validate_cv_params("activation")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     IsolationWindow,
+    cv_params,
     [
     ],
     [

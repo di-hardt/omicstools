@@ -5,7 +5,7 @@ use super::{
     cv_param::CvParam, is_element::IsElement,
     referenceable_param_group_ref::ReferenceableParamGroupRef,
 };
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 
@@ -18,26 +18,24 @@ pub struct Activation {
 
 impl Activation {
     pub fn validate(&self) -> Result<()> {
-        self.validate_cv_params(&self.cv_params, "activation")?;
+        self.validate_cv_params("activation")?;
         Ok(())
     }
 }
 
 impl IsElement for Activation {
     fn validate(&self) -> Result<()> {
-        for cv_params in &self.cv_params {
-            cv_params.validate()?;
-        }
         for referenceable_param_group_ref in &self.referenceable_param_group_ref {
             referenceable_param_group_ref.validate()?;
         }
-        self.validate_cv_params(&self.cv_params, "activation")?;
+        self.validate_cv_params("activation")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Activation,
+    cv_params,
     [],
     [
         "MS:1000044", // dissociation method

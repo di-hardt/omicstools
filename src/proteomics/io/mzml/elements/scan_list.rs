@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 use super::{cv_param::CvParam, is_element::IsElement, scan::Scan};
 
@@ -24,11 +24,7 @@ impl IsElement for ScanList {
                 self.scans.len()
             );
         }
-
-        for cv_param in &self.cv_params {
-            cv_param.validate()?;
-        }
-        self.validate_cv_params(&self.cv_params, "scanList")?;
+        self.validate_cv_params("scanList")?;
 
         for scan in &self.scans {
             scan.validate()?;
@@ -37,8 +33,9 @@ impl IsElement for ScanList {
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     ScanList,
+    cv_params,
     [
         "MS:1000570", // spectra combination
     ],

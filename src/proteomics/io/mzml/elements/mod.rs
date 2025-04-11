@@ -15,6 +15,8 @@ pub mod detector;
 pub mod file_checksum;
 pub mod file_content;
 pub mod file_description;
+/// Trait describing behavior for elements with cv params
+pub mod has_cv_params;
 pub mod index;
 pub mod index_list;
 pub mod index_list_offset;

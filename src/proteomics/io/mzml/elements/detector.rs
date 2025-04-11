@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{cv_param::CvParam, is_element::IsElement};
-use crate::build_cv_params_validator;
+use crate::has_cv_params;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Detector {
@@ -14,16 +14,14 @@ pub struct Detector {
 
 impl IsElement for Detector {
     fn validate(&self) -> Result<()> {
-        for cv_param in &self.cv_params {
-            cv_param.validate()?;
-        }
-        self.validate_cv_params(&self.cv_params, "detector")?;
+        self.validate_cv_params("detector")?;
         Ok(())
     }
 }
 
-build_cv_params_validator! {
+has_cv_params! {
     Detector,
+    cv_params,
     [
         "MS:1000026", // detector type
     ],
