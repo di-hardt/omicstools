@@ -28,11 +28,17 @@ pub trait HasCvParams {
     fn get_parent_accession_for_zero_or_many(&self) -> &'static Vec<&'static str>;
 
     /// Returns a reference to the cvParam with the given accession.
+    /// Some accessions like MS:1000633 (possibly charge state can occur multiple times),
+    /// therefore a vector is returned.
     ///
-    fn get_cv_param(&self, accession: &str) -> Option<&CvParam> {
+    /// # Arguments
+    /// * `accession` - The accession of the cvParam to be retrieved.
+    ///
+    fn get_cv_param(&self, accession: &str) -> Vec<&CvParam> {
         self.get_cv_params()
             .iter()
-            .find(|cv_param| cv_param.accession == accession)
+            .filter(|cv_param| cv_param.accession == accession)
+            .collect()
     }
 
     /// Checks if only one of the children of `get_parent_accession_for_must_once` is present in the element.
