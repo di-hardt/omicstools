@@ -16,13 +16,6 @@ pub struct Activation {
     pub referenceable_param_group_ref: Vec<ReferenceableParamGroupRef>,
 }
 
-impl Activation {
-    pub fn validate(&self) -> Result<()> {
-        self.validate_cv_params("activation")?;
-        Ok(())
-    }
-}
-
 impl IsElement for Activation {
     fn validate(&self) -> Result<()> {
         for referenceable_param_group_ref in &self.referenceable_param_group_ref {
