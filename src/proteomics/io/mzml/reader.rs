@@ -680,7 +680,6 @@ mod test {
         let xml = mzml_file
             .extract_spectrum("controllerType=0 controllerNumber=1 scan=3865", false)
             .unwrap();
-        std::fs::write("./tmp.mzML", &xml).unwrap();
         // Read extracted file, no reindexing but validation
         let mut extracted_inner_reader = std::io::Cursor::new(xml);
         let mut extracted_mzml_file =
@@ -703,7 +702,6 @@ mod test {
         let xml = mzml_file
             .extract_spectrum("controllerType=0 controllerNumber=1 scan=3865", false)
             .unwrap();
-        std::fs::write("./tmp.indexed.mzML", &xml).unwrap();
         // Read extracted file, no reindexing but validation
         let mut extracted_inner_reader = std::io::Cursor::new(xml);
         let mut extracted_mzml_file =
