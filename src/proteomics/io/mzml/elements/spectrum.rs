@@ -27,6 +27,15 @@ pub struct Spectrum {
     pub binary_data_array_list: BinaryDataArrayList,
 }
 
+impl Spectrum {
+    pub fn get_ms_level(&self) -> Option<u8> {
+        self.cv_params
+            .iter()
+            .find(|cv| cv.accession == "MS:1000511")
+            .and_then(|cv| cv.value.parse::<u8>().ok())
+    }
+}
+
 impl IsElement for Spectrum {
     fn validate(&self) -> Result<()> {
         self.scan_list.validate()?;

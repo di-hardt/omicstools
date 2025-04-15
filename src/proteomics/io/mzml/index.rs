@@ -13,7 +13,7 @@ use super::elements::index_list::IndexList;
 /// (for extraction of a single spectrum into a separate valid mzML file).
 /// TODO: Index chromatograms
 ///
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Index {
     spectra: HashMap<String, usize>,
     chromatograms: HashMap<String, usize>,

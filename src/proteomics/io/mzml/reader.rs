@@ -61,10 +61,16 @@ where
     index: Index,
 }
 
-impl<'a, F> File<'a, F>
+impl<F> File<'_, F>
 where
     F: BufRead + Seek,
 {
+    /// Returns the spectrum index
+    ///
+    pub fn get_index(&self) -> &Index {
+        &self.index
+    }
+
     /// Returns a spectrum by ID
     ///
     pub fn get_spectrum(&mut self, spectrum_id: &str) -> Result<Spectrum> {
@@ -93,11 +99,7 @@ where
 
     /// Returns a valid mzML with the given spectrum.
     ///
-    pub fn extract_spectrum(
-        &'a mut self,
-        spectrum_id: &str,
-        include_parents: bool,
-    ) -> Result<String> {
+    pub fn extract_spectrum(&mut self, spectrum_id: &str, include_parents: bool) -> Result<String> {
         let mut spectra: Vec<Spectrum> = Vec::with_capacity(2); // expect ms level 2 maybe 3
         let mut next_spec_ids = vec![spectrum_id.to_string()];
         while let Some(spectrum_id) = next_spec_ids.pop() {
