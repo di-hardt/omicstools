@@ -195,13 +195,4 @@ mod test {
             }
         }
     }
-
-    #[test]
-    fn test_testy() {
-        let file_path = Path::new("/Users/winkelhardtdi/Documents/datasets/PXD028735/LFQ_Orbitrap_DDA_Condition_A_Sample_Alpha_01.mzML");
-        let mut buf_reader = BufReader::new(File::open(file_path).unwrap());
-        let now = std::time::Instant::now();
-        let _ = Indexer::create_index(&mut buf_reader, None).unwrap();
-        println!("Index creation took: {:?}", now.elapsed());
-    }
 }
