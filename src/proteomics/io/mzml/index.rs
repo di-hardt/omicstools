@@ -1,10 +1,11 @@
 // std imports
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 // 3rd party crates
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+use super::elements::index_list::IndexList;
 
 /// Index for a mzML file.
 /// Stores length of the the general information (everything before the spectrumList) ends,
@@ -12,56 +13,25 @@ use serde::{Deserialize, Serialize};
 /// (for extraction of a single spectrum into a separate valid mzML file).
 /// TODO: Index chromatograms
 ///
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Index {
-    file_path: PathBuf,
-    indention: String,
-    default_data_processing_ref: String,
-    general_information_len: usize,
-    spectra: HashMap<String, (usize, usize)>,
-    chromatograms: HashMap<String, (usize, usize)>,
+    spectra: HashMap<String, usize>,
+    chromatograms: HashMap<String, usize>,
 }
 
 impl Index {
-    pub fn new(
-        file_path: PathBuf,
-        indention: String,
-        default_data_processing_ref: String,
-        general_information_len: usize,
-        spectra: HashMap<String, (usize, usize)>,
-        chromatograms: HashMap<String, (usize, usize)>,
-    ) -> Self {
+    pub fn new(spectra: HashMap<String, usize>, chromatograms: HashMap<String, usize>) -> Self {
         Self {
-            file_path,
-            indention,
-            default_data_processing_ref,
-            general_information_len,
             spectra,
             chromatograms,
         }
     }
 
-    pub fn get_file_path(&self) -> &PathBuf {
-        &self.file_path
-    }
-
-    pub fn get_indention(&self) -> &String {
-        &self.indention
-    }
-
-    pub fn get_default_data_processing_ref(&self) -> &String {
-        &self.default_data_processing_ref
-    }
-
-    pub fn get_general_information_len(&self) -> usize {
-        self.general_information_len
-    }
-
-    pub fn get_spectra(&self) -> &HashMap<String, (usize, usize)> {
+    pub fn get_spectra(&self) -> &HashMap<String, usize> {
         &self.spectra
     }
 
-    pub fn get_chromatograms(&self) -> &HashMap<String, (usize, usize)> {
+    pub fn get_chromatograms(&self) -> &HashMap<String, usize> {
         &self.chromatograms
     }
 
@@ -74,10 +44,32 @@ impl Index {
     }
 }
 
+impl From<&IndexList> for Index {
+    fn from(index_list: &IndexList) -> Self {
+        let spectrum_index = match index_list.get_index_by_name("spectrum") {
+            Some(index) => index
+                .offsets
+                .iter()
+                .map(|offset| (offset.id_ref.to_string(), offset.value))
+                .collect(),
+            None => HashMap::with_capacity(0),
+        };
+        let chromatogram_index = match index_list.get_index_by_name("chromatogram") {
+            Some(index) => index
+                .offsets
+                .iter()
+                .map(|offset| (offset.id_ref.to_string(), offset.value))
+                .collect(),
+            None => HashMap::with_capacity(0),
+        };
+        Index::new(spectrum_index, chromatogram_index)
+    }
+}
+
 #[cfg(test)]
 mod test {
     // std
-    use std::path::Path;
+    use std::{io::BufReader, path::Path};
 
     // internal
     use super::*;
@@ -86,27 +78,18 @@ mod test {
     #[test]
     fn test_serialization_deserialization() {
         let file_path = Path::new("./test_files/spectra_small.mzML");
+        let mut reader = BufReader::new(std::fs::File::open(file_path).unwrap());
 
-        let index = Indexer::create_index(file_path, None).unwrap();
+        let index = Indexer::create_index(&mut reader, None).unwrap();
 
         let serialized = index.to_json().unwrap();
         let deserialized_index: Index = Index::from_json(&serialized).unwrap();
 
-        assert_eq!(index.get_file_path(), deserialized_index.get_file_path());
-        assert_eq!(index.get_indention(), deserialized_index.get_indention());
-        assert_eq!(
-            index.get_default_data_processing_ref(),
-            deserialized_index.get_default_data_processing_ref()
-        );
-        assert_eq!(
-            index.get_general_information_len(),
-            deserialized_index.get_general_information_len()
-        );
         for (spec_id, expected_start_end_offset) in index.get_spectra().iter() {
             assert!(deserialized_index.get_spectra().contains_key(spec_id));
             if let Some(start_end_offset) = deserialized_index.get_spectra().get(spec_id) {
-                assert_eq!(expected_start_end_offset.0, start_end_offset.0);
-                assert_eq!(expected_start_end_offset.1, start_end_offset.1)
+                assert_eq!(expected_start_end_offset, start_end_offset);
+                assert_eq!(expected_start_end_offset, start_end_offset)
             }
         }
         // TODO: add chromatogram assertion when they get added

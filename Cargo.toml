@@ -15,10 +15,13 @@ base64 = "0.21.5"
 csv = "1.2.2"
 fallible-iterator = "0.3.0"
 fancy-regex = "0.12.0"
+fastobo = "0.15.2"
+fastobo-graphs = "0.4.8"
 flate2 = { version = "1.0.28", features = ["zlib"] }
 lazy_static = "1.4.0"
 petgraph = { version = "0.6.4", features = ["serde-1"] }
-quick-xml = "0.31.0"
+quick-xml = { version = "0.37.4", features = ["serialize"] }
+reqwest = { version = "0.11.22", features = ["blocking"] }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
 sha1 = "0.10.6"
