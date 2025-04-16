@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Context, Error, Result};
 
+use crate::proteomics::io::mzml::elements::is_list::IsList;
 use crate::proteomics::io::mzml::elements::{
     has_cv_params::HasCvParams, spectrum::Spectrum as MzMlSpectrum,
 };
@@ -261,7 +262,6 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
 
         if let Some(ref precursor_list) = spectrum.precursor_list {
             let precs: Vec<SimplePrecursor> = precursor_list
-                .precursors
                 .iter()
                 .map(|precursor| {
                     let isolation_windows: Option<(f64, f64, f64)> =
@@ -293,7 +293,6 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
                         match precursor.selected_ion_list.as_ref() {
                             Some(ions_list) => {
                                 let ions_converted = ions_list
-                                    .selected_ions
                                     .iter()
                                     .map(|ion| {
                                         let mz: f64 = ion
