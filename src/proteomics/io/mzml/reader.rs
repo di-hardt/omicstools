@@ -71,6 +71,15 @@ where
         &self.index
     }
 
+    /// Returns the inner mzML element (indexed or not)
+    ///
+    pub fn get_mzml(&self) -> &MzML<IndexedRun> {
+        match self.mzml_element {
+            MzMlElement::MzML(ref mzml) => mzml,
+            MzMlElement::IndexedMzML(ref indexed_mzml) => &indexed_mzml.mz_ml,
+        }
+    }
+
     /// Returns a spectrum by ID
     ///
     pub fn get_spectrum(&mut self, spectrum_id: &str) -> Result<Spectrum> {
