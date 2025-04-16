@@ -525,8 +525,10 @@ mod test {
     fn test_spectrum_3865(spectrum: Spectrum) {
         assert_eq!(spectrum.id, "controllerType=0 controllerNumber=1 scan=3865");
         assert_eq!(spectrum.index, 3);
-        let precursor_ion = &spectrum.precursor_list.unwrap().precursors[0]
+        let precursor_ion = &spectrum.precursor_list.as_ref().unwrap().precursors[0]
             .selected_ion_list
+            .as_ref()
+            .unwrap()
             .selected_ions[0];
         let mass_to_charge = precursor_ion
             .cv_params
