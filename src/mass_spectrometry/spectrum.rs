@@ -14,6 +14,24 @@ const DISSOCIATION_METHOD_ACCESSION: &str = "MS:1000044";
 /// PSI ontology accession for precursor activation attribute
 const PRECURSOR_ACTIVATION_ATTRIBUTES_ACCESSION: &str = "MS:1000510";
 
+/// PSI ontology accession for charge state
+const CHARGE_STATE_ACCESSION: &str = "MS:1000041";
+
+/// PSI ontology accession for possible charge states
+const POSSIBLE_CHARGES_ACCESSION: &str = "MS:1000633";
+
+/// PSI ontology accession for selected ion m/z
+const SELECTED_ION_MZ_ACCESSION: &str = "MS:1000744";
+
+/// PSI ontology accession for isolation window target m/z
+const ISOLATION_WINDOW_TARGET_MZ_ACCESSION: &str = "MS:1000827";
+
+/// PSI ontology accession for isolation window lower offset
+const ISOLATION_WINDOW_LOWER_OFFSET_ACCESSION: &str = "MS:1000828";
+
+/// PSI ontology accession for isolation window upper offset
+const ISOLATION_WINDOW_UPPER_OFFSET_ACCESSION: &str = "MS:1000829";
+
 /// Trait defining a basic spectrum
 /// Should at least contain mz and intensity vectors, the ms level and identifier.
 ///
@@ -266,20 +284,30 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
                 .map(|precursor| {
                     let isolation_windows: Option<(f64, f64, f64)> =
                         match precursor.isolation_window.as_ref() {
+                            // return Ok(Some((target_mz, lower_offset, upper_offset)))
                             Some(window) => Ok::<_, Error>(Some((
-                                match window.get_cv_param("MS:1000827").first() {
+                                match window
+                                    .get_cv_param(ISOLATION_WINDOW_TARGET_MZ_ACCESSION)
+                                    .first()
+                                {
                                     Some(cv_param) => cv_param.value.parse::<f64>().context(
                                         "Error when parsing isolation window target m/z",
                                     )?,
                                     None => 0.0,
                                 },
-                                match window.get_cv_param("MS:1000828").first() {
+                                match window
+                                    .get_cv_param(ISOLATION_WINDOW_LOWER_OFFSET_ACCESSION)
+                                    .first()
+                                {
                                     Some(cv_param) => cv_param.value.parse::<f64>().context(
                                         "Error when parsing isolation window lower offset",
                                     )?,
                                     None => 0.0,
                                 },
-                                match window.get_cv_param("MS:1000829").first() {
+                                match window
+                                    .get_cv_param(ISOLATION_WINDOW_UPPER_OFFSET_ACCESSION)
+                                    .first()
+                                {
                                     Some(cv_param) => cv_param.value.parse::<f64>().context(
                                         "Error when parsing isolation window upper offset",
                                     )?,
@@ -296,7 +324,7 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
                                     .iter()
                                     .map(|ion| {
                                         let mz: f64 = ion
-                                            .get_cv_param("MS:1000744")
+                                            .get_cv_param(SELECTED_ION_MZ_ACCESSION)
                                             .first()
                                             .ok_or_else(|| {
                                                 anyhow!("Spectrum does not have selected ion m/z")
@@ -306,7 +334,7 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
                                             .context("Cannot parse selected ion m/z to f64")?;
                                         // // Select charge states states
                                         let mut charges: Vec<u8> = ion
-                                            .get_cv_param("MS:1000041")
+                                            .get_cv_param(CHARGE_STATE_ACCESSION)
                                             .iter()
                                             .map(|cv_param| {
                                                 cv_param
@@ -317,7 +345,7 @@ impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
                                             .collect::<Result<Vec<u8>>>()?;
                                         // add possible charge states
                                         let possible_charges: Vec<u8> = ion
-                                            .get_cv_param("MS:1000633")
+                                            .get_cv_param(POSSIBLE_CHARGES_ACCESSION)
                                             .iter()
                                             .map(|cv_param| {
                                                 cv_param.value.parse::<u8>().context(
