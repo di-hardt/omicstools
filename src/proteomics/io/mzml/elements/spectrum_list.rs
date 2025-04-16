@@ -1,7 +1,11 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, spectrum::Spectrum};
+use super::{
+    is_element::IsElement,
+    is_list::IsList,
+    spectrum::Spectrum,
+};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SpectrumList {
@@ -22,5 +26,11 @@ impl IsElement for SpectrumList {
             spectrum.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, Spectrum> for SpectrumList {
+    fn iter(&self) -> std::slice::Iter<'_, Spectrum> {
+        self.spectra.iter()
     }
 }

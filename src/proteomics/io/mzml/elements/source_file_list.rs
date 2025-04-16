@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, source_file::SourceFile};
+use super::{is_element::IsElement, is_list::IsList, source_file::SourceFile};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SourceFileList {
@@ -25,5 +25,11 @@ impl IsElement for SourceFileList {
             source_file.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, SourceFile> for SourceFileList {
+    fn iter(&self) -> std::slice::Iter<'_, SourceFile> {
+        self.source_files.iter()
     }
 }

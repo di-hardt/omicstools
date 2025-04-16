@@ -28,3 +28,24 @@ impl IsElement for ComponentList {
         Ok(())
     }
 }
+
+// Makes no sense do implement IsList for ComponentList attributes
+// as they need to be called like `<ComponentList as IsList<'_, Analyzer>>::iter(&config.component_list)`
+//
+// impl IsList<'_, Source> for ComponentList {
+//     fn iter(&self) -> Elements<'_, Source> {
+//         Elements::new(&self.sources)
+//     }
+// }
+//
+// impl IsList<'_, Analyzer> for ComponentList {
+//     fn iter(&self) -> Elements<'_, Analyzer> {
+//         Elements::new(&self.analyzers)
+//     }
+// }
+//
+// impl IsList<'_, Detector> for ComponentList {
+//     fn iter(&self) -> Elements<'_, Detector> {
+//         Elements::new(&self.detectors)
+//     }
+// }

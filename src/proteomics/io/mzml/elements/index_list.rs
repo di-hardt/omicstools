@@ -1,7 +1,12 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::{index::Index, is_element::IsElement, offset::Offset};
+use super::{
+    index::Index,
+    is_element::IsElement,
+    is_list::IsList,
+    offset::Offset,
+};
 use crate::proteomics::io::mzml::index::Index as MzmlIndex;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -24,6 +29,12 @@ impl IsElement for IndexList {
             index.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, Index> for IndexList {
+    fn iter(&self) -> std::slice::Iter<'_, Index> {
+        self.indexes.iter()
     }
 }
 

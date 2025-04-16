@@ -48,3 +48,6 @@ pub mod source_file_list;
 pub mod spectrum;
 pub mod spectrum_list;
 pub mod user_param;
+
+/// Trait for list elements
+pub mod is_list;

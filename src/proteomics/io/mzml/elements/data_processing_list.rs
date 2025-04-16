@@ -1,7 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::{data_processing::DataProcessing, is_element::IsElement};
+use super::{
+    data_processing::DataProcessing,
+    is_element::IsElement,
+    is_list::IsList,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DataProcessingList {
@@ -17,5 +21,11 @@ impl IsElement for DataProcessingList {
             data_processing.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, DataProcessing> for DataProcessingList {
+    fn iter(&self) -> std::slice::Iter<'_, DataProcessing> {
+        self.data_processings.iter()
     }
 }

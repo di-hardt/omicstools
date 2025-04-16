@@ -1,7 +1,11 @@
 // 3rd party imports
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, referenceable_param_group::ReferenceableParamGroup};
+use super::{
+    is_element::IsElement,
+    is_list::IsList,
+    referenceable_param_group::ReferenceableParamGroup,
+};
 
 // Local imports
 
@@ -19,5 +23,11 @@ impl IsElement for ReferenceableParamGroupList {
             referenceable_param_group.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, ReferenceableParamGroup> for ReferenceableParamGroupList {
+    fn iter(&self) -> std::slice::Iter<'_, ReferenceableParamGroup> {
+        self.referenceable_param_groups.iter()
     }
 }

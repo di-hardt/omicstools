@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, selected_ion::SelectedIon};
+use super::{is_element::IsElement, is_list::IsList, selected_ion::SelectedIon};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SelectedIonList {
@@ -20,5 +20,11 @@ impl IsElement for SelectedIonList {
             selected_ion.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, SelectedIon> for SelectedIonList {
+    fn iter(&self) -> std::slice::Iter<'_, SelectedIon> {
+        self.selected_ions.iter()
     }
 }

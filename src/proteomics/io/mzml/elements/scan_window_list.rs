@@ -1,7 +1,11 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, scan_window::ScanWindow};
+use super::{
+    is_element::IsElement,
+    is_list::IsList,
+    scan_window::ScanWindow,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScanWindowList {
@@ -20,5 +24,11 @@ impl IsElement for ScanWindowList {
             scan_window.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, ScanWindow> for ScanWindowList {
+    fn iter(&self) -> std::slice::Iter<'_, ScanWindow> {
+        self.scan_windows.iter()
     }
 }

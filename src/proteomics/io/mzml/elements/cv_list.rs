@@ -1,7 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::{cv::Cv, is_element::IsElement};
+use super::{
+    cv::Cv,
+    is_element::IsElement,
+    is_list::IsList,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CvList {
@@ -17,5 +21,11 @@ impl IsElement for CvList {
             cv.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, Cv> for CvList {
+    fn iter(&self) -> std::slice::Iter<'_, Cv> {
+        self.cv.iter()
     }
 }

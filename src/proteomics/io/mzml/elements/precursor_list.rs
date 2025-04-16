@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{is_element::IsElement, precursor::Precursor};
+use super::{is_element::IsElement, is_list::IsList, precursor::Precursor};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PrecursorList {
@@ -20,5 +20,11 @@ impl IsElement for PrecursorList {
             precursor.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, Precursor> for PrecursorList {
+    fn iter(&self) -> std::slice::Iter<'_, Precursor> {
+        self.precursors.iter()
     }
 }

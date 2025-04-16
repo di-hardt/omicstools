@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{binary_data_array::BinaryDataArray, is_element::IsElement};
+use super::{binary_data_array::BinaryDataArray, is_element::IsElement, is_list::IsList};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BinaryDataArrayList {
@@ -50,5 +50,11 @@ impl IsElement for BinaryDataArrayList {
             binary_data_array.validate()?;
         }
         Ok(())
+    }
+}
+
+impl IsList<'_, BinaryDataArray> for BinaryDataArrayList {
+    fn iter(&self) -> std::slice::Iter<'_, BinaryDataArray> {
+        self.binary_data_arrays.iter()
     }
 }
