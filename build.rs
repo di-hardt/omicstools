@@ -51,23 +51,27 @@ struct RetentionCoefficientTemplate {
 /// Custom filters for askama templates
 ///
 mod filters {
-    pub fn len<T>(vec: &[T]) -> askama::Result<usize> {
+    #[askama::filter_fn]
+    pub fn len<T>(vec: &[T], _: &dyn askama::Values) -> askama::Result<usize> {
         Ok(vec.len())
     }
 
-    pub fn upper_snake_case(string: &str) -> askama::Result<String> {
+    #[askama::filter_fn]
+    pub fn upper_snake_case(string: &str, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(string.replace(" ", "_").to_uppercase())
     }
 
     /// Prevents 0.0 to be shortened to 0
     ///
-    pub fn f64_to_string(number: &f64) -> askama::Result<String> {
+    #[askama::filter_fn]
+    pub fn f64_to_string(number: &f64, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(format!("{:?}", number))
     }
 
     /// Prevents 0.0 to be shortened to 0
     ///
-    pub fn f32_to_string(number: &f32) -> askama::Result<String> {
+    #[askama::filter_fn]
+    pub fn f32_to_string(number: &f32, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(format!("{:?}", number))
     }
 }

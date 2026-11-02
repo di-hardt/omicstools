@@ -29,7 +29,7 @@ zip = { version = "9.2.2", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
 anyhow = "1.0.72"
-askama = "0.12.0"
+askama = { version = "0.16", default-features = false, features = ["derive", "std"] }
 csv = "1.2.2"
 
 [dev-dependencies]
