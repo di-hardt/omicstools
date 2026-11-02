@@ -97,7 +97,7 @@ impl TaxonomyTree {
             index.insert(tax_id, node);
         }
 
-        for (_, tax_node) in index.iter() {
+        for tax_node in index.values() {
             let taxonomy = &tree[*tax_node];
             let parent_node = index.get(&taxonomy.get_parent_id()).unwrap();
             tree.add_edge(*parent_node, *tax_node, ());

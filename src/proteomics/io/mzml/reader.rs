@@ -123,7 +123,7 @@ where
             }
             spectra.push(spectrum);
         }
-        spectra.sort_by(|x, y| x.index.cmp(&y.index));
+        spectra.sort_by_key(|x| x.index);
         let mzml = self.mzml_element.clone();
 
         match mzml {
@@ -302,7 +302,7 @@ where
         buffer_size: Option<usize>,
         force_reindex: bool,
         validate_mzml: bool,
-    ) -> Result<File<F>> {
+    ) -> Result<File<'_, F>> {
         mzml_file.seek(SeekFrom::Start(0))?;
 
         let (mzml_without_data, spectrum_offsets, chromatogram_offsets, is_indexed_mzml) =
@@ -355,7 +355,7 @@ where
         index: Index,
         buffer_size: Option<usize>,
         validate_mzml: bool,
-    ) -> Result<File<F>> {
+    ) -> Result<File<'_, F>> {
         mzml_file.seek(SeekFrom::Start(0))?;
 
         let (mzml_without_data, _, _, is_indexed_mzml) =
