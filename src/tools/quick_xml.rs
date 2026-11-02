@@ -34,6 +34,7 @@ pub fn get_attributes<'a>(event: &'a BytesStart<'a>) -> Result<Vec<Attribute<'a>
 }
 
 /// Searches for an attribute with the given name and returns its value.
+/// Attribute gets normalized/escaped using XML version 1.0 implicit which is used for mzML(?)
 ///
 /// # Arguments
 /// * `attr_name` - The name of the attribute to search for.
@@ -47,7 +48,11 @@ where
         .iter()
         .find(|attr| attr.key.as_ref() == attr_name)
     {
-        Some(attr) => Ok(attr.unescape_value()?.as_ref().to_string().into()),
+        Some(attr) => Ok(attr
+            .normalized_value(quick_xml::XmlVersion::Implicit1_0)?
+            .as_ref()
+            .to_string()
+            .into()),
         None => bail!(AttributeNotFound(
             String::from_utf8_lossy(attr_name).to_string()
         )),
