@@ -8,7 +8,6 @@ use std::path::Path;
 // 3rd party imports
 use anyhow::Result;
 use anyhow::{bail, Context};
-use zip;
 
 // internal imports
 use crate::biology::taxonomy::{Taxonomy, TaxonomyTree};
@@ -45,7 +44,7 @@ impl TaxonomyReader {
 
         for i in 0..self.archive.len() {
             let mut file = self.archive.by_index(i).unwrap();
-            match file.name() {
+            match file.name()?.as_ref() {
                 "delnodes.dmp" => {
                     deleted_taxonomies = Self::read_delnodes(&mut file)?;
                 }
@@ -80,7 +79,7 @@ impl TaxonomyReader {
         ))
     }
 
-    fn read_delnodes(file: &mut zip::read::ZipFile) -> Result<Vec<u64>> {
+    fn read_delnodes(file: &mut impl Read) -> Result<Vec<u64>> {
         let reader = BufReader::new(file);
         reader
             .lines()
@@ -94,7 +93,7 @@ impl TaxonomyReader {
             .collect::<Result<Vec<u64>>>()
     }
 
-    fn read_merged(file: &mut zip::read::ZipFile) -> Result<HashMap<u64, u64>> {
+    fn read_merged(file: &mut impl Read) -> Result<HashMap<u64, u64>> {
         let reader = BufReader::new(file);
         reader
             .lines()
@@ -118,7 +117,7 @@ impl TaxonomyReader {
             .collect::<Result<HashMap<u64, u64>>>()
     }
 
-    fn read_nodes(file: &mut zip::read::ZipFile) -> Result<TaxonomyNodeCollection> {
+    fn read_nodes(file: &mut impl Read) -> Result<TaxonomyNodeCollection> {
         let mut ranks: HashMap<String, u64> = HashMap::new();
         let mut taxonomies: Vec<(u64, u64, String, u64)> = Vec::new();
         let reader = BufReader::new(file);
@@ -155,7 +154,7 @@ impl TaxonomyReader {
         Ok((ranks, taxonomies))
     }
 
-    fn read_names(file: &mut zip::read::ZipFile) -> Result<HashMap<u64, String>> {
+    fn read_names(file: &mut impl Read) -> Result<HashMap<u64, String>> {
         let reader = BufReader::new(file);
         let mut name_maps: HashMap<u64, String> = HashMap::new();
         for line in reader.lines() {
@@ -217,7 +216,7 @@ pub mod tests {
 
         for i in 0..archive.len() {
             let mut dmp_file = archive.by_index(i).unwrap();
-            match dmp_file.name() {
+            match dmp_file.name().unwrap().as_ref() {
                 "delnodes.dmp" => validate_delnodes(&tree, &mut dmp_file),
                 "merged.dmp" => validate_merged(&tree, &mut dmp_file),
                 "nodes.dmp" => validate_nodes(&tree, &mut dmp_file),
@@ -272,7 +271,7 @@ pub mod tests {
 
     /// Just checks if the number of lines in the delnodes.dmp file is equal to the number of
     /// deleted taxonomies in the tree.
-    fn validate_delnodes(tree: &TaxonomyTree, dmp_file: &mut zip::read::ZipFile) {
+    fn validate_delnodes(tree: &TaxonomyTree, dmp_file: &mut impl Read) {
         let reader = BufReader::new(dmp_file);
         let num_lines = reader.lines().count();
         assert_eq!(num_lines, tree.get_deleted_taxonomies().len());
@@ -280,7 +279,7 @@ pub mod tests {
 
     /// Just checks if the number of lines in the merged.dmp file is equal to the number of
     /// merged taxonomies in the tree.
-    fn validate_merged(tree: &TaxonomyTree, dmp_file: &mut zip::read::ZipFile) {
+    fn validate_merged(tree: &TaxonomyTree, dmp_file: &mut impl Read) {
         let reader = BufReader::new(dmp_file);
         let num_lines = reader.lines().count();
         assert_eq!(num_lines, tree.get_merged_taxonomies().len());
@@ -288,7 +287,7 @@ pub mod tests {
 
     /// Just checks if the number of lines in the names.dmp file is equal to the number of
     /// taxonomies in the tree.
-    fn validate_nodes(tree: &TaxonomyTree, dmp_file: &mut zip::read::ZipFile) {
+    fn validate_nodes(tree: &TaxonomyTree, dmp_file: &mut impl Read) {
         let reader = BufReader::new(dmp_file);
         let num_lines = reader.lines().count();
         assert_eq!(num_lines, tree.get_taxonomies().len());
