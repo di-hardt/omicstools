@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 pub mod elements;
 /// Errors for handling MzML files
 pub mod error;

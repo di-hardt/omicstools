@@ -2,6 +2,8 @@
 
 This crate will slowly loose most of it's abilities in favor of [rusteomics' mzcore](https://github.com/rusteomics/mzcore) and [mzdata](https://github.com/mobiusklein/mzdata)
 
+**Deprecated:** the mzML reader (`proteomics::io::mzml`) is deprecated in favor of [mzdata](https://github.com/mobiusklein/mzdata) and will be removed in version 4.0.0.
+
 ## Constant data
 For easier maintenance the data of some datatypes with multiple attributes like elements and amino acids is provided as CSV-file and gets compiled on build time (see: build.rs)
 * Amino acid data is used from: <https://proteomicsresource.washington.edu/protocols06/masses.php>

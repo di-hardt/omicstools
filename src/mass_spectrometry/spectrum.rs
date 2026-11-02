@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Context, Error, Result};
 
+#[allow(deprecated)]
 use crate::proteomics::io::mzml::elements::is_list::IsList;
+#[allow(deprecated)]
 use crate::proteomics::io::mzml::elements::{
     has_cv_params::HasCvParams, spectrum::Spectrum as MzMlSpectrum,
 };
@@ -221,6 +223,7 @@ impl MsNSpectrum<SimplePrecursor> for SimpleMsNSpectrum {
     }
 }
 
+#[allow(deprecated)]
 impl TryFrom<MzMlSpectrum> for SimpleMsNSpectrum {
     type Error = anyhow::Error;
 
@@ -425,6 +428,7 @@ mod tests {
     use std::io::BufReader;
 
     use super::*;
+    #[allow(deprecated)]
     use crate::proteomics::io::mzml::reader::Reader as MzMlReader;
 
     #[test]
